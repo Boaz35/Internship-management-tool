@@ -1,27 +1,32 @@
-@import "../styles/ios26-tokens.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Accent tint — configurable; drives all interactive highlights. */
-  --tint: rgb(0, 136, 255);
+  /* Accent tint — Zemingo Neon; drives progress fills + "awaiting" + badges. */
+  --tint: #ff8fb0;
 
-  /* Semantic surface + text colors (iOS 26). */
+  /* Zemingo palette */
+  --sun: #fff282; /* primary CTA / active nav / active segment (black text) */
+  --sun-deep: #e8d940;
+  --green: #1f6e47; /* approvals, finalize, positive */
+  --terracotta: #b14a3c; /* delete / remove */
+  --warn: #c28a1a; /* custom / mentor tag */
+
+  /* Surfaces + ink (iOS 26 layout base kept) */
   --bg: rgb(242, 242, 247);
-  --surface: rgb(255, 255, 255);
+  --surface: #ffffff;
   --fill-tertiary: rgba(118, 118, 128, 0.12);
-  --fill-quaternary: rgba(116, 116, 128, 0.08);
-  --separator: rgba(0, 0, 0, 0.12);
-  --label: rgb(0, 0, 0);
-  --label-secondary: rgba(60, 60, 67, 0.6);
-  --label-tertiary: rgba(60, 60, 67, 0.3);
+  --fill-quaternary: rgba(118, 118, 128, 0.08);
+  --separator: #e1e1e1;
+  --label: #000000;
+  --label-secondary: #7d7d7d;
+  --label-tertiary: #a8a8a8;
 
-  --green: rgb(52, 199, 89);
-  --orange: rgb(255, 141, 40);
-  --red: rgb(255, 56, 60);
-  --card-shadow-hover: 0px 8px 40px rgba(0, 0, 0, 0.12);
-  --pill-shadow: 0px 2px 8px rgba(0, 0, 0, 0.12);
+  --neutral-avatar: #e5e5ea;
+  --ring: 0 0 0 1px #e1e1e1;
+
+  --font-serif: "Frank Ruhl Libre", Georgia, serif;
 }
 
 html,
@@ -34,8 +39,8 @@ body {
 body {
   background: var(--bg);
   color: var(--label);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
-    "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.23px;
 }
@@ -52,7 +57,6 @@ textarea::placeholder {
 }
 
 @layer components {
-  /* Content column used by every screen */
   .ios-page {
     max-width: 980px;
     margin: 0 auto;
@@ -60,10 +64,11 @@ textarea::placeholder {
     box-sizing: border-box;
   }
 
+  /* Headings — Rubik 500, no heavy weights (Zemingo rule) */
   .ios-h1 {
     font-size: 34px;
-    font-weight: 700;
-    letter-spacing: -0.4px;
+    font-weight: 500;
+    letter-spacing: -0.2px;
     line-height: 41px;
     margin: 0;
   }
@@ -72,15 +77,16 @@ textarea::placeholder {
     font-size: 15px;
     color: var(--label-secondary);
   }
+  /* Eyebrow section label — 11px uppercase, tracked */
   .ios-section-label {
-    font-size: 13px;
+    font-size: 11px;
+    font-weight: 500;
     color: var(--label-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.08em;
     padding: 0 20px 8px;
   }
 
-  /* White rounded card */
   .ios-card {
     background: var(--surface);
     border-radius: 26px;
@@ -89,14 +95,12 @@ textarea::placeholder {
     padding: 20px 24px;
   }
 
-  /* Inner soft tile (stats, notes) */
   .ios-tile {
     background: var(--fill-quaternary);
     border-radius: 16px;
     padding: 12px 16px;
   }
 
-  /* Progress track + fill */
   .ios-track {
     height: 6px;
     border-radius: 100px;
@@ -109,15 +113,15 @@ textarea::placeholder {
     background: var(--tint);
   }
 
-  /* Pill button (primary tint) */
+  /* Primary CTA — Sun yellow, black text */
   .ios-btn {
     height: 36px;
     border: none;
     border-radius: 100px;
-    background: var(--tint);
-    color: #fff;
+    background: var(--sun);
+    color: #000;
     font-size: 15px;
-    font-weight: 590;
+    font-weight: 500;
     padding: 0 20px;
     cursor: pointer;
   }
@@ -125,19 +129,20 @@ textarea::placeholder {
     opacity: 0.5;
     cursor: default;
   }
+  /* Secondary — white with hairline ring */
   .ios-btn-ghost {
     height: 36px;
-    border: 1px solid rgba(60, 60, 67, 0.29);
+    border: none;
     border-radius: 100px;
-    background: transparent;
+    background: var(--surface);
+    box-shadow: var(--ring);
     color: var(--label);
     font-size: 15px;
-    font-weight: 510;
+    font-weight: 500;
     padding: 0 18px;
     cursor: pointer;
   }
 
-  /* Rounded input / select on soft fill */
   .ios-input {
     height: 36px;
     border-radius: 100px;
@@ -151,7 +156,7 @@ textarea::placeholder {
   .ios-textarea {
     width: 100%;
     border-radius: 18px;
-    border: 1px solid rgba(60, 60, 67, 0.29);
+    border: 1px solid var(--separator);
     padding: 12px 14px;
     font-size: 15px;
     color: var(--label);
@@ -167,12 +172,11 @@ textarea::placeholder {
     margin-bottom: 5px;
   }
 
-  /* Status pill */
   .ios-pill {
     display: inline-flex;
     align-items: center;
     font-size: 12px;
-    font-weight: 510;
+    font-weight: 400;
     border-radius: 100px;
     padding: 2px 8px;
     white-space: nowrap;

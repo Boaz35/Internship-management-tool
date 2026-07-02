@@ -141,7 +141,7 @@ function DesignerTaskRow({
             cursor: canApprove ? "pointer" : "default",
             color: approved ? "var(--label-secondary)" : "#fff",
             background: approved ? "transparent" : "var(--green)",
-            border: approved ? "1px solid rgba(60,60,67,0.29)" : "none",
+            border: approved ? "1px solid var(--separator)" : "none",
             opacity: canApprove ? 1 : 0.35,
           }}
         >

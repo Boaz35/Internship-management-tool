@@ -95,7 +95,7 @@ export async function InternDetail({
 
       <div className="flex items-end justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Avatar name={name} email={person?.email} size={56} seed={internId} />
+          <Avatar name={name} email={person?.email} size={56} neutral />
           <div>
             <h1 className="ios-h1">{name}</h1>
             <p className="ios-subtitle" style={{ marginTop: 2 }}>
@@ -111,10 +111,10 @@ export async function InternDetail({
             height: 40,
             padding: "0 18px",
             borderRadius: 100,
-            background: "rgba(0,122,255,0.15)",
-            color: "var(--tint)",
+            background: "var(--fill-tertiary)",
+            color: "#000",
             fontSize: 15,
-            fontWeight: 590,
+            fontWeight: 500,
           }}
         >
           <span>Summary document</span>

@@ -29,21 +29,23 @@ export function Avatar({
   email,
   size = 44,
   seed,
+  neutral = false,
 }: {
   name?: string | null;
   email?: string;
   size?: number;
   seed?: string;
+  neutral?: boolean;
 }) {
   const hue = hueForSeed(seed ?? name ?? email ?? "?");
   const style: CSSProperties = {
     width: size,
     height: size,
     borderRadius: "50%",
-    background: `rgba(${hue},0.15)`,
-    color: `rgb(${hue})`,
+    background: neutral ? "var(--neutral-avatar)" : `rgba(${hue},0.15)`,
+    color: neutral ? "#000" : `rgb(${hue})`,
     fontSize: size >= 52 ? 20 : size >= 44 ? 16 : 13,
-    fontWeight: 600,
+    fontWeight: 500,
     flexShrink: 0,
   };
   return (
@@ -78,14 +80,19 @@ export function StatTile({ label, value }: { label: string; value: string }) {
 type PillTone = "green" | "tint" | "orange" | "neutral" | "red";
 
 const PILL_TONES: Record<PillTone, CSSProperties> = {
-  green: { color: "var(--green)", background: "rgba(52,199,89,0.15)" },
-  tint: { color: "var(--tint)", background: "rgba(0,122,255,0.15)" },
-  orange: { color: "var(--orange)", background: "rgba(255,141,40,0.15)" },
+  // approved / positive — Forest green
+  green: { color: "var(--green)", background: "rgba(31,110,71,0.12)" },
+  // awaiting / ready — Neon pink, black text
+  tint: { color: "#000", background: "rgba(255,143,176,0.4)" },
+  // custom / mentor tag — warn amber
+  orange: { color: "var(--warn)", background: "rgba(194,138,26,0.14)" },
+  // not started
   neutral: {
     color: "var(--label-secondary)",
     background: "rgba(118,118,128,0.12)",
   },
-  red: { color: "#fff", background: "var(--red)", fontWeight: 590 },
+  // "N to review" badge — solid Neon pink, black text
+  red: { color: "#000", background: "var(--tint)", fontWeight: 500 },
 };
 
 export function StatusPill({

@@ -84,12 +84,12 @@ export function SummaryEditor({
           style={
             finalized
               ? {
-                  background: "transparent",
+                  background: "var(--surface)",
                   color: "var(--label)",
-                  border: "1px solid rgba(60,60,67,0.29)",
-                  fontWeight: 510,
+                  boxShadow: "var(--ring)",
+                  fontWeight: 500,
                 }
-              : { background: "var(--green)" }
+              : { background: "var(--green)", color: "#fff" }
           }
         >
           {finalized ? "Reopen" : "Finalize"}
@@ -104,7 +104,7 @@ export function SummaryEditor({
       {finalized && (
         <p
           className="ios-pill"
-          style={{ color: "var(--green)", background: "rgba(52,199,89,0.15)", alignSelf: "flex-start", padding: "6px 12px" }}
+          style={{ color: "var(--green)", background: "rgba(31,110,71,0.12)", alignSelf: "flex-start", padding: "6px 12px" }}
         >
           Finalized — reopen to make further edits.
         </p>

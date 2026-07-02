@@ -83,7 +83,7 @@ function TaskRowItem({ task }: { task: TaskRow }) {
     ? "var(--tint)"
     : "transparent";
   const circleBorder =
-    approved || completed ? "none" : "2px solid rgba(60,60,67,0.3)";
+    approved || completed ? "none" : "1px solid var(--label-tertiary)";
 
   return (
     <div

@@ -36,43 +36,52 @@ export default function LoginPage({
     });
   }
 
+  const domain = process.env.NEXT_PUBLIC_ALLOWED_EMAIL_DOMAIN;
+
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
       <div
-        className="ios-card w-full"
-        style={{ maxWidth: 380, padding: 32 }}
+        style={{
+          width: 380,
+          background: "var(--surface)",
+          borderRadius: 34,
+          padding: "40px 36px 36px",
+          boxShadow: "var(--ring)",
+          textAlign: "center",
+        }}
       >
         <div
-          className="flex items-center justify-center"
           style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
-            background: "var(--tint)",
+            width: 64,
+            height: 64,
+            borderRadius: 16,
+            overflow: "hidden",
+            margin: "0 auto",
           }}
         >
-          <svg width="24" height="24" viewBox="0 0 16 16">
-            <circle cx="8" cy="5" r="3" fill="white" />
-            <rect x="2.5" y="9.5" width="11" height="6.5" rx="3.25" fill="white" />
-          </svg>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/zemingo/symbol.jpg"
+            alt="Zemingo"
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
         </div>
 
-        <h1 className="mt-5" style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>
+        <h1 style={{ margin: "20px 0 0", fontSize: 24, fontWeight: 500, letterSpacing: "-0.45px" }}>
           Internship Program
         </h1>
-        <p style={{ marginTop: 4, fontSize: 15, color: "var(--label-secondary)" }}>
+        <p style={{ margin: "8px 0 0", fontSize: 15, color: "var(--label-secondary)", lineHeight: "20px" }}>
           Sign in with your work Google account to continue.
         </p>
 
         {errorMessage && (
           <p
-            className="ios-pill mt-4"
             style={{
-              display: "block",
+              margin: "16px 0 0",
+              borderRadius: 12,
               padding: "10px 14px",
-              color: "var(--red)",
-              background: "rgba(255,56,60,0.12)",
-              fontWeight: 400,
+              color: "var(--terracotta)",
+              background: "rgba(177,74,60,0.1)",
               fontSize: 14,
             }}
           >
@@ -83,15 +92,17 @@ export default function LoginPage({
         <button
           onClick={signIn}
           disabled={loading}
-          className="mt-6 flex w-full items-center justify-center gap-2"
+          className="flex w-full items-center justify-center gap-[9px]"
           style={{
+            marginTop: 28,
             height: 48,
-            borderRadius: 100,
-            background: "var(--tint)",
-            color: "#fff",
-            fontSize: 15,
-            fontWeight: 590,
             border: "none",
+            borderRadius: 100,
+            background: "var(--fill-tertiary)",
+            color: "#000",
+            fontSize: 17,
+            fontWeight: 500,
+            letterSpacing: "-0.43px",
             cursor: "pointer",
             opacity: loading ? 0.6 : 1,
           }}
@@ -99,6 +110,10 @@ export default function LoginPage({
           <GoogleIcon />
           {loading ? "Redirecting…" : "Continue with Google"}
         </button>
+
+        <p style={{ margin: "16px 0 0", fontSize: 13, color: "var(--label-tertiary)" }}>
+          Restricted to the {domain ?? "your organization"} workspace
+        </p>
       </div>
     </main>
   );
@@ -106,28 +121,11 @@ export default function LoginPage({
 
 function GoogleIcon() {
   return (
-    <span
-      className="flex items-center justify-center"
-      style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff" }}
-    >
-      <svg width="14" height="14" viewBox="0 0 48 48">
-        <path
-          fill="#EA4335"
-          d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-        />
-        <path
-          fill="#4285F4"
-          d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-        />
-        <path
-          fill="#FBBC05"
-          d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-        />
-        <path
-          fill="#34A853"
-          d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-        />
-      </svg>
-    </span>
+    <svg width="18" height="18" viewBox="0 0 48 48">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+    </svg>
   );
 }

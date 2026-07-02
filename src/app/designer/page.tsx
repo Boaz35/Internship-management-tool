@@ -79,7 +79,7 @@ export default async function DesignerDashboard() {
                 style={{ padding: "22px 24px" }}
               >
                 <div className="flex items-start gap-[14px]">
-                  <Avatar name={name} email={person?.email} size={48} seed={intern.id} />
+                  <Avatar name={name} email={person?.email} size={48} neutral />
                   <div className="min-w-0 flex-1">
                     <div style={{ fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>
                       {name}

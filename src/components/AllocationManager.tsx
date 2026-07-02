@@ -229,7 +229,7 @@ function AddInternForm({
         Create intern
       </button>
       {error && (
-        <p style={{ width: "100%", fontSize: 13, color: "var(--red)" }}>{error}</p>
+        <p style={{ width: "100%", fontSize: 13, color: "var(--terracotta)" }}>{error}</p>
       )}
     </form>
   );

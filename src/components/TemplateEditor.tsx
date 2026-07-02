@@ -19,16 +19,17 @@ export function TemplateEditor({
   templates: TaskTemplateRow[];
 }) {
   return (
-    <div className="flex flex-col gap-4">
-      <p style={{ fontSize: 15, color: "var(--label-secondary)" }}>
+    <div className="flex flex-col gap-5">
+      <p style={{ fontSize: 15, color: "var(--label-secondary)", maxWidth: 620 }}>
         Adding a task adds it to every current intern&apos;s checklist and to
-        future interns. Removing a task only takes it out of the template —
-        current interns keep it. Deleting a whole phase removes it for everyone.
+        future interns. Removing a task only takes it out of the template.
+        Deleting a whole phase removes it for everyone.
       </p>
-      {milestones.map((m) => (
+      {milestones.map((m, i) => (
         <MilestoneBlock
           key={m.id}
           milestone={m}
+          index={i}
           tasks={templates.filter((t) => t.milestone_id === m.id)}
         />
       ))}
@@ -39,15 +40,19 @@ export function TemplateEditor({
 
 function MilestoneBlock({
   milestone,
+  index,
   tasks,
 }: {
   milestone: MilestoneRow;
+  index: number;
   tasks: TaskTemplateRow[];
 }) {
   const [name, setName] = useState(milestone.name);
   const [description, setDescription] = useState(milestone.description ?? "");
   const [newTask, setNewTask] = useState("");
   const [pending, startTransition] = useTransition();
+
+  const num = String(index + 1).padStart(2, "0");
 
   function saveMilestone() {
     startTransition(async () => {
@@ -90,32 +95,43 @@ function MilestoneBlock({
   }
 
   return (
-    <section className="ios-card" style={{ padding: "18px 20px 16px" }}>
-      <div className="flex items-start gap-2">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={saveMilestone}
+    <section className="ios-card" style={{ padding: "20px 24px 16px" }}>
+      <div className="flex items-start justify-between">
+        <div className="min-w-0 flex-1" style={{ paddingTop: 22 }}>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={saveMilestone}
+            style={{
+              width: "100%",
+              border: "none",
+              outline: "none",
+              background: "transparent",
+              fontSize: 20,
+              fontWeight: 500,
+              letterSpacing: "-0.45px",
+              padding: 0,
+            }}
+          />
+        </div>
+        {/* Ghost chapter number — Frank Ruhl Libre Light (Zemingo) */}
+        <div
+          aria-hidden
           style={{
-            flex: 1,
-            border: "none",
-            outline: "none",
-            background: "transparent",
-            fontSize: 17,
-            fontWeight: 590,
-            letterSpacing: "-0.43px",
-            padding: "2px 0",
+            fontFamily: "var(--font-serif)",
+            fontWeight: 300,
+            fontSize: 72,
+            lineHeight: 0.9,
+            color: "var(--neutral-avatar)",
+            userSelect: "none",
+            flexShrink: 0,
+            marginLeft: 16,
           }}
-        />
-        <button
-          disabled={pending}
-          onClick={removePhase}
-          style={{ fontSize: 13, color: "var(--red)", cursor: "pointer", flexShrink: 0 }}
-          title="Delete phase"
         >
-          Delete phase
-        </button>
+          {num}
+        </div>
       </div>
+
       <textarea
         value={description}
         onChange={(e) => setDescription(e.target.value)}
@@ -123,10 +139,20 @@ function MilestoneBlock({
         rows={2}
         placeholder="Description"
         className="ios-textarea"
-        style={{ marginTop: 6, fontSize: 13, color: "var(--label-secondary)" }}
+        style={{ marginTop: 4, fontSize: 13, color: "var(--label-secondary)" }}
       />
 
-      <div className="mt-2">
+      <div className="mt-3 flex items-center justify-end">
+        <button
+          disabled={pending}
+          onClick={removePhase}
+          style={{ fontSize: 13, color: "var(--terracotta)", cursor: "pointer" }}
+        >
+          Delete phase
+        </button>
+      </div>
+
+      <div className="mt-1">
         {tasks.map((t) => (
           <TemplateTaskRow key={t.id} task={t} />
         ))}
@@ -146,7 +172,11 @@ function MilestoneBlock({
         )}
       </div>
 
-      <form onSubmit={add} className="mt-3 flex gap-2">
+      <form
+        onSubmit={add}
+        className="flex items-center gap-[10px]"
+        style={{ paddingTop: 12, borderTop: "1px solid var(--separator)" }}
+      >
         <input
           value={newTask}
           onChange={(e) => setNewTask(e.target.value)}
@@ -167,9 +197,17 @@ function TemplateTaskRow({ task }: { task: TaskTemplateRow }) {
 
   return (
     <div
-      className="flex items-center gap-2"
+      className="flex items-center gap-3"
       style={{ minHeight: 44, borderTop: "1px solid var(--separator)" }}
     >
+      <svg width="12" height="12" viewBox="0 0 12 12" style={{ flexShrink: 0 }}>
+        <circle cx="3" cy="2.5" r="1.2" fill="var(--label-tertiary)" />
+        <circle cx="9" cy="2.5" r="1.2" fill="var(--label-tertiary)" />
+        <circle cx="3" cy="6" r="1.2" fill="var(--label-tertiary)" />
+        <circle cx="9" cy="6" r="1.2" fill="var(--label-tertiary)" />
+        <circle cx="3" cy="9.5" r="1.2" fill="var(--label-tertiary)" />
+        <circle cx="9" cy="9.5" r="1.2" fill="var(--label-tertiary)" />
+      </svg>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -205,7 +243,7 @@ function TemplateTaskRow({ task }: { task: TaskTemplateRow }) {
             }
           })
         }
-        style={{ fontSize: 13, color: "var(--label-tertiary)", cursor: "pointer" }}
+        style={{ fontSize: 13, color: "var(--terracotta)", cursor: "pointer" }}
       >
         Delete
       </button>
@@ -245,8 +283,8 @@ function AddPhaseForm() {
           padding: "18px 20px",
           textAlign: "left",
           fontSize: 15,
-          fontWeight: 590,
-          color: "var(--tint)",
+          fontWeight: 500,
+          color: "#000",
           cursor: "pointer",
         }}
       >
@@ -257,14 +295,14 @@ function AddPhaseForm() {
 
   return (
     <form onSubmit={submit} className="ios-card" style={{ padding: "18px 20px" }}>
-      <div style={{ fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>
+      <div style={{ fontSize: 17, fontWeight: 500, letterSpacing: "-0.43px" }}>
         New phase
       </div>
       <input
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="Phase name (e.g. Design Review)"
+        placeholder="Phase name (e.g. Design review)"
         className="ios-input"
         style={{ marginTop: 12, width: "100%" }}
       />
@@ -280,18 +318,10 @@ function AddPhaseForm() {
         <button type="submit" disabled={pending} className="ios-btn">
           Add phase
         </button>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="ios-btn-ghost"
-        >
+        <button type="button" onClick={() => setOpen(false)} className="ios-btn-ghost">
           Cancel
         </button>
       </div>
-      <p style={{ margin: "10px 0 0", fontSize: 13, color: "var(--label-secondary)" }}>
-        Add the phase, then add its tasks below — tasks fan out to every current
-        intern.
-      </p>
     </form>
   );
 }

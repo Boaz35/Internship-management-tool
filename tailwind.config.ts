@@ -4,18 +4,21 @@ const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Rubik", "Helvetica Neue", "Arial", "sans-serif"],
+        serif: ["Frank Ruhl Libre", "Georgia", "serif"],
+      },
       colors: {
         tint: "var(--tint)",
+        sun: "var(--sun)",
+        forest: "var(--green)",
+        terracotta: "var(--terracotta)",
+        warn: "var(--warn)",
         surface: "var(--surface)",
         label: {
           DEFAULT: "var(--label)",
           secondary: "var(--label-secondary)",
           tertiary: "var(--label-tertiary)",
-        },
-        ios: {
-          green: "var(--green)",
-          orange: "var(--orange)",
-          red: "var(--red)",
         },
       },
       borderRadius: {
@@ -24,8 +27,7 @@ const config: Config = {
         pill: "100px",
       },
       boxShadow: {
-        card: "0px 8px 40px rgba(0,0,0,0.12)",
-        pill: "0px 2px 8px rgba(0,0,0,0.12)",
+        ring: "0 0 0 1px #e1e1e1",
       },
     },
   },

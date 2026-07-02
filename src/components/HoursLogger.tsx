@@ -112,7 +112,7 @@ export function HoursLogger({ logs }: { logs: HoursLogRow[] }) {
               onClick={() => remove(log.id)}
               style={{
                 fontSize: 13,
-                color: "var(--red)",
+                color: "var(--terracotta)",
                 padding: "10px 0 10px 8px",
                 borderTop: "1px solid var(--separator)",
                 cursor: "pointer",
@@ -172,10 +172,9 @@ function Segmented<T extends string>({
             style={{
               padding: "0 14px",
               borderRadius: 100,
-              fontSize: 13.33,
-              fontWeight: selected ? 590 : 510,
-              background: selected ? "var(--surface)" : "transparent",
-              boxShadow: selected ? "var(--pill-shadow)" : "none",
+              fontSize: 13,
+              fontWeight: selected ? 500 : 400,
+              background: selected ? "var(--sun)" : "transparent",
               cursor: "pointer",
             }}
           >
