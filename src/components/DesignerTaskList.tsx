@@ -7,6 +7,7 @@ import {
   addCustomTask,
   deleteTask,
 } from "@/app/actions/designer";
+import { StatusPill } from "@/components/ui";
 
 export function DesignerTaskList({
   internId,
@@ -20,34 +21,51 @@ export function DesignerTaskList({
   readOnly?: boolean;
 }) {
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       {milestones.map((m) => {
         const group = tasks.filter((t) => t.milestone_id === m.id);
         const approved = group.filter((t) => t.approved_by_designer).length;
         return (
           <section
             key={m.id}
-            className="rounded-xl border border-slate-200 bg-white p-5"
+            className="ios-card"
+            style={{ padding: "18px 20px 14px" }}
           >
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-900">{m.name}</h3>
-              <span className="text-xs text-slate-500">
+            <div
+              className="flex items-baseline justify-between"
+              style={{ paddingBottom: 8 }}
+            >
+              <div style={{ fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>
+                {m.name}
+              </div>
+              <div style={{ fontSize: 13, color: "var(--label-secondary)" }}>
                 {approved} of {group.length} approved
-              </span>
+              </div>
             </div>
-            <ul className="divide-y divide-slate-100">
-              {group.map((task) => (
-                <DesignerTaskRow
-                  key={task.id}
-                  task={task}
-                  internId={internId}
-                  readOnly={readOnly}
-                />
-              ))}
-              {group.length === 0 && (
-                <li className="py-2 text-sm text-slate-400">No tasks.</li>
-              )}
-            </ul>
+
+            {group.map((task) => (
+              <DesignerTaskRow
+                key={task.id}
+                task={task}
+                internId={internId}
+                readOnly={readOnly}
+              />
+            ))}
+            {group.length === 0 && (
+              <div
+                style={{
+                  minHeight: 46,
+                  display: "flex",
+                  alignItems: "center",
+                  borderTop: "1px solid var(--separator)",
+                  fontSize: 15,
+                  color: "var(--label-tertiary)",
+                }}
+              >
+                No tasks.
+              </div>
+            )}
+
             {!readOnly && (
               <AddCustomTask internId={internId} milestoneId={m.id} />
             )}
@@ -83,59 +101,86 @@ function DesignerTaskRow({
     });
   }
 
+  const canApprove = completed || approved;
+
   return (
-    <li className="flex items-center gap-3 py-2.5">
-      <span className="flex-1 text-sm text-slate-800">
+    <div
+      className="flex items-center gap-3"
+      style={{ minHeight: 46, borderTop: "1px solid var(--separator)" }}
+    >
+      <div
+        style={{
+          flex: 1,
+          fontSize: 15,
+          color: approved ? "var(--label-secondary)" : "var(--label)",
+        }}
+      >
         {task.name}
-        {task.source === "custom" && (
-          <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-            custom
-          </span>
-        )}
-      </span>
+      </div>
+
+      {task.source === "custom" && <StatusPill tone="orange">custom</StatusPill>}
 
       {approved ? (
-        <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-          Approved
-        </span>
+        <StatusPill tone="green">Approved</StatusPill>
       ) : completed ? (
-        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-          Ready to review
-        </span>
+        <StatusPill tone="tint">Ready to review</StatusPill>
       ) : (
-        <span className="text-xs text-slate-400">Not started</span>
+        <StatusPill tone="neutral">Not started</StatusPill>
       )}
 
       {!readOnly && (
         <button
           onClick={toggleApprove}
-          disabled={pending || (!completed && !approved)}
-          className={`rounded-md px-2.5 py-1 text-xs font-medium transition disabled:opacity-40 ${
-            approved
-              ? "border border-slate-300 text-slate-600 hover:bg-slate-50"
-              : "bg-green-600 text-white hover:bg-green-700"
-          }`}
+          disabled={pending || !canApprove}
+          style={{
+            fontSize: 13,
+            fontWeight: 590,
+            borderRadius: 100,
+            padding: "5px 14px",
+            flexShrink: 0,
+            cursor: canApprove ? "pointer" : "default",
+            color: approved ? "var(--label-secondary)" : "#fff",
+            background: approved ? "transparent" : "var(--green)",
+            border: approved ? "1px solid rgba(60,60,67,0.29)" : "none",
+            opacity: canApprove ? 1 : 0.35,
+          }}
         >
           {approved ? "Undo" : "Approve"}
         </button>
       )}
+
       {!readOnly && task.source === "custom" && (
-        <button
-          onClick={() =>
-            startTransition(async () => {
-              try {
-                await deleteTask(task.id, internId);
-              } catch {
-                /* ignore */
-              }
-            })
-          }
-          className="text-xs text-slate-400 hover:text-red-600"
-        >
-          ✕
-        </button>
+        <DeleteTaskButton taskId={task.id} internId={internId} />
       )}
-    </li>
+    </div>
+  );
+}
+
+function DeleteTaskButton({
+  taskId,
+  internId,
+}: {
+  taskId: string;
+  internId: string;
+}) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <button
+      disabled={pending}
+      onClick={() =>
+        startTransition(async () => {
+          try {
+            await deleteTask(taskId, internId);
+          } catch {
+            /* ignore */
+          }
+        })
+      }
+      style={{ fontSize: 13, color: "var(--label-tertiary)", cursor: "pointer" }}
+      title="Delete task"
+    >
+      ✕
+    </button>
   );
 }
 
@@ -169,7 +214,17 @@ function AddCustomTask({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="mt-3 text-xs font-medium text-brand-600 hover:text-brand-700"
+        style={{
+          marginTop: 4,
+          paddingTop: 10,
+          borderTop: "1px solid var(--separator)",
+          width: "100%",
+          textAlign: "left",
+          fontSize: 13,
+          fontWeight: 590,
+          color: "var(--tint)",
+          cursor: "pointer",
+        }}
       >
         + Add task
       </button>
@@ -177,26 +232,22 @@ function AddCustomTask({
   }
 
   return (
-    <form onSubmit={submit} className="mt-3 flex gap-2">
+    <form
+      onSubmit={submit}
+      className="flex gap-2"
+      style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--separator)" }}
+    >
       <input
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Task name"
-        className="flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+        className="ios-input flex-1"
       />
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-      >
+      <button type="submit" disabled={pending} className="ios-btn">
         Add
       </button>
-      <button
-        type="button"
-        onClick={() => setOpen(false)}
-        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-600"
-      >
+      <button type="button" onClick={() => setOpen(false)} className="ios-btn-ghost">
         Cancel
       </button>
     </form>

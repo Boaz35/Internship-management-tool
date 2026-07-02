@@ -1,9 +1,10 @@
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { TopBar } from "@/components/TopBar";
+import { AppShell } from "@/components/AppShell";
 import { HoursOverview } from "@/components/HoursOverview";
 import { HoursLogger } from "@/components/HoursLogger";
 import { InternTaskList } from "@/components/InternTaskList";
+import { SectionLabel } from "@/components/ui";
 import type {
   HoursLogRow,
   InternRow,
@@ -25,15 +26,17 @@ export default async function InternDashboard() {
 
   if (!intern) {
     return (
-      <>
-        <TopBar name={user.full_name} role={user.role} />
-        <main className="mx-auto max-w-5xl px-4 py-10">
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">
+      <AppShell name={user.full_name} email={user.email} role={user.role}>
+        <div className="ios-page">
+          <div
+            className="ios-card"
+            style={{ padding: "24px 28px", fontSize: 15, color: "var(--label-secondary)" }}
+          >
             Your internship hasn&apos;t been set up yet. A team leader needs to
             create your intern record. Check back shortly.
           </div>
-        </main>
-      </>
+        </div>
+      </AppShell>
     );
   }
 
@@ -48,40 +51,35 @@ export default async function InternDashboard() {
         .order("date", { ascending: false }),
     ]);
 
+  const firstName = user.full_name ? user.full_name.split(" ")[0] : null;
+
   return (
-    <>
-      <TopBar name={user.full_name} role={user.role} />
-      <main className="mx-auto max-w-5xl space-y-8 px-4 py-8">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">
-            Welcome{user.full_name ? `, ${user.full_name.split(" ")[0]}` : ""}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Track your tasks and log your hours here.
-          </p>
+    <AppShell name={user.full_name} email={user.email} role={user.role}>
+      <div className="ios-page">
+        <h1 className="ios-h1">Welcome{firstName ? `, ${firstName}` : ""}</h1>
+        <p className="ios-subtitle">Track your tasks and log your hours here.</p>
+
+        <div className="mt-8">
+          <HoursOverview
+            logs={(logs as HoursLogRow[]) ?? []}
+            target={intern.target_hours}
+          />
         </div>
 
-        <HoursOverview
-          logs={(logs as HoursLogRow[]) ?? []}
-          target={intern.target_hours}
-        />
-
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="mt-8 grid items-start gap-7 lg:grid-cols-2">
           <div>
-            <h2 className="mb-3 text-lg font-semibold text-slate-900">
-              Your program
-            </h2>
+            <SectionLabel>Your program</SectionLabel>
             <InternTaskList
               milestones={(milestones as MilestoneRow[]) ?? []}
               tasks={(tasks as TaskRow[]) ?? []}
             />
           </div>
           <div>
-            <h2 className="mb-3 text-lg font-semibold text-slate-900">Hours</h2>
+            <SectionLabel>Hours</SectionLabel>
             <HoursLogger logs={(logs as HoursLogRow[]) ?? []} />
           </div>
         </div>
-      </main>
-    </>
+      </div>
+    </AppShell>
   );
 }

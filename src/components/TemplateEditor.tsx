@@ -17,8 +17,8 @@ export function TemplateEditor({
   templates: TaskTemplateRow[];
 }) {
   return (
-    <div className="space-y-5">
-      <p className="text-sm text-slate-500">
+    <div className="flex flex-col gap-4">
+      <p style={{ fontSize: 15, color: "var(--label-secondary)" }}>
         Changes here define the default program. New tasks apply to interns
         created afterwards; existing interns keep their current task lists.
       </p>
@@ -70,45 +70,60 @@ function MilestoneBlock({
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
-      <div className="mb-3 space-y-2">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={saveMilestone}
-          className="w-full rounded-md border border-transparent px-1 py-1 text-lg font-semibold text-slate-900 hover:border-slate-200 focus:border-brand-500 focus:outline-none"
-        />
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          onBlur={saveMilestone}
-          rows={2}
-          placeholder="Description"
-          className="w-full rounded-md border border-slate-200 px-2 py-1 text-sm text-slate-600 focus:border-brand-500 focus:outline-none"
-        />
-      </div>
+    <section className="ios-card" style={{ padding: "18px 20px 16px" }}>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onBlur={saveMilestone}
+        style={{
+          width: "100%",
+          border: "none",
+          outline: "none",
+          background: "transparent",
+          fontSize: 17,
+          fontWeight: 590,
+          letterSpacing: "-0.43px",
+          padding: "2px 0",
+        }}
+      />
+      <textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        onBlur={saveMilestone}
+        rows={2}
+        placeholder="Description"
+        className="ios-textarea"
+        style={{ marginTop: 6, fontSize: 13, color: "var(--label-secondary)" }}
+      />
 
-      <ul className="divide-y divide-slate-100">
+      <div className="mt-2">
         {tasks.map((t) => (
           <TemplateTaskRow key={t.id} task={t} />
         ))}
         {tasks.length === 0 && (
-          <li className="py-2 text-sm text-slate-400">No template tasks.</li>
+          <div
+            style={{
+              minHeight: 40,
+              display: "flex",
+              alignItems: "center",
+              borderTop: "1px solid var(--separator)",
+              fontSize: 15,
+              color: "var(--label-tertiary)",
+            }}
+          >
+            No template tasks.
+          </div>
         )}
-      </ul>
+      </div>
 
       <form onSubmit={add} className="mt-3 flex gap-2">
         <input
           value={newTask}
           onChange={(e) => setNewTask(e.target.value)}
           placeholder="New task…"
-          className="flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+          className="ios-input flex-1"
         />
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-        >
+        <button type="submit" disabled={pending} className="ios-btn">
           Add
         </button>
       </form>
@@ -121,7 +136,10 @@ function TemplateTaskRow({ task }: { task: TaskTemplateRow }) {
   const [pending, startTransition] = useTransition();
 
   return (
-    <li className="flex items-center gap-2 py-2">
+    <div
+      className="flex items-center gap-2"
+      style={{ minHeight: 44, borderTop: "1px solid var(--separator)" }}
+    >
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -136,7 +154,15 @@ function TemplateTaskRow({ task }: { task: TaskTemplateRow }) {
             });
           }
         }}
-        className="flex-1 rounded-md border border-transparent px-1 py-1 text-sm text-slate-800 hover:border-slate-200 focus:border-brand-500 focus:outline-none"
+        style={{
+          flex: 1,
+          border: "none",
+          outline: "none",
+          background: "transparent",
+          fontSize: 15,
+          color: "var(--label)",
+          padding: "2px 0",
+        }}
       />
       <button
         disabled={pending}
@@ -149,10 +175,10 @@ function TemplateTaskRow({ task }: { task: TaskTemplateRow }) {
             }
           })
         }
-        className="text-xs text-slate-400 hover:text-red-600"
+        style={{ fontSize: 13, color: "var(--label-tertiary)", cursor: "pointer" }}
       >
         Delete
       </button>
-    </li>
+    </div>
   );
 }

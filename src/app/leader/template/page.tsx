@@ -1,7 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { TopBar } from "@/components/TopBar";
-import { LeaderNav } from "@/components/LeaderNav";
+import { AppShell } from "@/components/AppShell";
 import { TemplateEditor } from "@/components/TemplateEditor";
 import type { MilestoneRow, TaskTemplateRow } from "@/lib/database.types";
 
@@ -17,18 +16,19 @@ export default async function TemplatePage() {
   ]);
 
   return (
-    <>
-      <TopBar name={user.full_name} role={user.role} />
-      <main className="mx-auto max-w-5xl space-y-6 px-4 py-8">
-        <h1 className="text-2xl font-semibold text-slate-900">
-          Program template
-        </h1>
-        <LeaderNav />
-        <TemplateEditor
-          milestones={(milestones as MilestoneRow[]) ?? []}
-          templates={(templates as TaskTemplateRow[]) ?? []}
-        />
-      </main>
-    </>
+    <AppShell name={user.full_name} email={user.email} role={user.role}>
+      <div className="ios-page">
+        <h1 className="ios-h1">Program template</h1>
+        <p className="ios-subtitle">
+          The shared milestones and default tasks every intern receives.
+        </p>
+        <div className="mt-8">
+          <TemplateEditor
+            milestones={(milestones as MilestoneRow[]) ?? []}
+            templates={(templates as TaskTemplateRow[]) ?? []}
+          />
+        </div>
+      </div>
+    </AppShell>
   );
 }

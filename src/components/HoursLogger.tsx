@@ -5,6 +5,12 @@ import type { HoursLogRow, HoursType } from "@/lib/database.types";
 import { logHours, deleteHoursLog } from "@/app/actions/intern";
 import { formatDate } from "@/lib/progress";
 
+const TYPES: { value: HoursType; label: string }[] = [
+  { value: "work", label: "Work" },
+  { value: "vacation", label: "Vacation" },
+  { value: "sick", label: "Sick" },
+];
+
 const TYPE_LABEL: Record<HoursType, string> = {
   work: "Work",
   vacation: "Vacation",
@@ -46,87 +52,188 @@ export function HoursLogger({ logs }: { logs: HoursLogRow[] }) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5">
-      <h3 className="mb-3 font-semibold text-slate-900">Log time</h3>
-      <form onSubmit={submit} className="flex flex-wrap items-end gap-3">
-        <label className="text-sm">
-          <span className="mb-1 block text-slate-500">Date</span>
+    <div className="ios-card" style={{ padding: "18px 20px 20px" }}>
+      <div style={{ fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>
+        Log time
+      </div>
+
+      <form onSubmit={submit} className="mt-[14px] flex flex-wrap items-end gap-[10px]">
+        <label className="block">
+          <span className="ios-field-label">Date</span>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            className="ios-input"
           />
         </label>
-        <label className="text-sm">
-          <span className="mb-1 block text-slate-500">Hours</span>
+        <label className="block">
+          <span className="ios-field-label">Hours</span>
           <input
             type="number"
             step="0.5"
             min="0"
             value={hours}
             onChange={(e) => setHours(e.target.value)}
-            className="w-24 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            className="ios-input text-center"
+            style={{ width: 68 }}
           />
         </label>
-        <label className="text-sm">
-          <span className="mb-1 block text-slate-500">Type</span>
-          <select
+        <div>
+          <span className="ios-field-label">Type</span>
+          <Segmented
             value={type}
-            onChange={(e) => setType(e.target.value as HoursType)}
-            className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-          >
-            <option value="work">Work</option>
-            <option value="vacation">Vacation</option>
-            <option value="sick">Sick</option>
-          </select>
-        </label>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-        >
+            onChange={setType}
+            options={TYPES.map((t) => ({ value: t.value, label: t.label }))}
+          />
+        </div>
+        <button type="submit" disabled={pending} className="ios-btn">
           Add
         </button>
       </form>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p style={{ marginTop: 8, fontSize: 13, color: "var(--red)" }}>{error}</p>
+      )}
 
-      <div className="mt-4 max-h-64 overflow-y-auto">
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
-            <tr>
-              <th className="pb-2">Date</th>
-              <th className="pb-2">Type</th>
-              <th className="pb-2 text-right">Hours</th>
-              <th className="pb-2" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {logs.map((log) => (
-              <tr key={log.id}>
-                <td className="py-2 text-slate-700">{formatDate(log.date)}</td>
-                <td className="py-2 text-slate-500">{TYPE_LABEL[log.type]}</td>
-                <td className="py-2 text-right text-slate-700">{log.hours}</td>
-                <td className="py-2 text-right">
-                  <button
-                    onClick={() => remove(log.id)}
-                    className="text-xs text-slate-400 hover:text-red-600"
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {logs.length === 0 && (
-              <tr>
-                <td colSpan={4} className="py-3 text-slate-400">
-                  No time logged yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div
+        className="mt-5 grid items-center"
+        style={{ gridTemplateColumns: "1fr auto auto auto", columnGap: 20 }}
+      >
+        <HeadCell>Date</HeadCell>
+        <HeadCell>Type</HeadCell>
+        <HeadCell align="right">Hours</HeadCell>
+        <div />
+        {logs.map((log) => (
+          <RowCells key={log.id}>
+            <Cell>{formatDate(log.date)}</Cell>
+            <Cell secondary>{TYPE_LABEL[log.type]}</Cell>
+            <Cell align="right">{log.hours}</Cell>
+            <button
+              onClick={() => remove(log.id)}
+              style={{
+                fontSize: 13,
+                color: "var(--red)",
+                padding: "10px 0 10px 8px",
+                borderTop: "1px solid var(--separator)",
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+            >
+              Remove
+            </button>
+          </RowCells>
+        ))}
+        {logs.length === 0 && (
+          <div
+            style={{
+              gridColumn: "1 / -1",
+              paddingTop: 12,
+              fontSize: 15,
+              color: "var(--label-tertiary)",
+            }}
+          >
+            No time logged yet.
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+}) {
+  return (
+    <div
+      className="inline-flex items-center"
+      style={{
+        height: 36,
+        borderRadius: 100,
+        background: "var(--fill-tertiary)",
+        padding: 2,
+        gap: 4,
+        boxSizing: "border-box",
+      }}
+    >
+      {options.map((o) => {
+        const selected = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(o.value)}
+            className="flex items-center self-stretch"
+            style={{
+              padding: "0 14px",
+              borderRadius: 100,
+              fontSize: 13.33,
+              fontWeight: selected ? 590 : 510,
+              background: selected ? "var(--surface)" : "transparent",
+              boxShadow: selected ? "var(--pill-shadow)" : "none",
+              cursor: "pointer",
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function HeadCell({
+  children,
+  align,
+}: {
+  children: React.ReactNode;
+  align?: "right";
+}) {
+  return (
+    <div
+      style={{
+        fontSize: 13,
+        color: "var(--label-secondary)",
+        textTransform: "uppercase",
+        letterSpacing: "0.02em",
+        paddingBottom: 8,
+        textAlign: align,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function RowCells({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
+
+function Cell({
+  children,
+  secondary,
+  align,
+}: {
+  children: React.ReactNode;
+  secondary?: boolean;
+  align?: "right";
+}) {
+  return (
+    <div
+      style={{
+        fontSize: 15,
+        color: secondary ? "var(--label-secondary)" : "var(--label)",
+        padding: "10px 0",
+        borderTop: "1px solid var(--separator)",
+        textAlign: align,
+      }}
+    >
+      {children}
     </div>
   );
 }

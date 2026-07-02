@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import type { MilestoneRow, TaskRow } from "@/lib/database.types";
 import { setTaskCompleted } from "@/app/actions/intern";
+import { StatusPill } from "@/components/ui";
 
 export function InternTaskList({
   milestones,
@@ -12,29 +13,44 @@ export function InternTaskList({
   tasks: TaskRow[];
 }) {
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       {milestones.map((m) => {
         const group = tasks.filter((t) => t.milestone_id === m.id);
         const approved = group.filter((t) => t.approved_by_designer).length;
         return (
           <section
             key={m.id}
-            className="rounded-xl border border-slate-200 bg-white p-5"
+            className="ios-card"
+            style={{ padding: "18px 20px 8px" }}
           >
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-900">{m.name}</h3>
-              <span className="text-xs text-slate-500">
+            <div
+              className="flex items-baseline justify-between"
+              style={{ paddingBottom: 8 }}
+            >
+              <div style={{ fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>
+                {m.name}
+              </div>
+              <div style={{ fontSize: 13, color: "var(--label-secondary)" }}>
                 {approved} of {group.length} approved
-              </span>
+              </div>
             </div>
-            <ul className="divide-y divide-slate-100">
-              {group.map((task) => (
-                <TaskRowItem key={task.id} task={task} />
-              ))}
-              {group.length === 0 && (
-                <li className="py-2 text-sm text-slate-400">No tasks yet.</li>
-              )}
-            </ul>
+            {group.map((task) => (
+              <TaskRowItem key={task.id} task={task} />
+            ))}
+            {group.length === 0 && (
+              <div
+                style={{
+                  minHeight: 44,
+                  display: "flex",
+                  alignItems: "center",
+                  borderTop: "1px solid var(--separator)",
+                  fontSize: 15,
+                  color: "var(--label-tertiary)",
+                }}
+              >
+                No tasks yet.
+              </div>
+            )}
           </section>
         );
       })}
@@ -48,48 +64,80 @@ function TaskRowItem({ task }: { task: TaskRow }) {
   const approved = task.approved_by_designer;
 
   function toggle() {
-    if (approved) return; // locked once approved
+    if (approved || pending) return; // locked once approved
     const next = !completed;
     setCompleted(next);
     startTransition(async () => {
       try {
         await setTaskCompleted(task.id, next);
       } catch {
-        setCompleted(!next); // revert on failure
+        setCompleted(!next);
       }
     });
   }
 
+  const checked = completed || approved;
+  const circleBg = approved
+    ? "var(--green)"
+    : completed
+    ? "var(--tint)"
+    : "transparent";
+  const circleBorder =
+    approved || completed ? "none" : "2px solid rgba(60,60,67,0.3)";
+
   return (
-    <li className="flex items-center gap-3 py-2.5">
-      <input
-        type="checkbox"
-        checked={completed || approved}
+    <div
+      className="flex items-center gap-3"
+      style={{ minHeight: 44, borderTop: "1px solid var(--separator)" }}
+    >
+      <button
+        onClick={toggle}
         disabled={approved || pending}
-        onChange={toggle}
-        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-      />
-      <span
-        className={`flex-1 text-sm ${
-          approved ? "text-slate-500 line-through" : "text-slate-800"
-        }`}
+        aria-label={checked ? "Completed" : "Mark done"}
+        className="flex items-center justify-center"
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: "50%",
+          flexShrink: 0,
+          boxSizing: "border-box",
+          background: circleBg,
+          border: circleBorder,
+          cursor: approved ? "default" : "pointer",
+        }}
+      >
+        {checked && (
+          <svg width="11" height="9" viewBox="0 0 11 9">
+            <path
+              d="M 1 4.5 L 4 7.5 L 10 1"
+              fill="none"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </button>
+
+      <div
+        style={{
+          flex: 1,
+          fontSize: 15,
+          color: approved ? "var(--label-secondary)" : "var(--label)",
+          textDecoration: approved ? "line-through" : "none",
+        }}
       >
         {task.name}
-        {task.source === "custom" && (
-          <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-            added by mentor
-          </span>
-        )}
-      </span>
+      </div>
+
+      {task.source === "custom" && <StatusPill tone="orange">mentor</StatusPill>}
+
       {approved ? (
-        <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-          Approved
-        </span>
+        <StatusPill tone="green">Approved</StatusPill>
       ) : completed ? (
-        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-          Awaiting approval
-        </span>
+        <StatusPill tone="tint">Awaiting approval</StatusPill>
       ) : null}
-    </li>
+    </div>
   );
 }

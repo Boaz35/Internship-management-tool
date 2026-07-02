@@ -66,46 +66,47 @@ export function SummaryEditor({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={regenerate}
-          disabled={pending}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-        >
+        <button onClick={regenerate} disabled={pending} className="ios-btn-ghost">
           {content ? "Regenerate draft" : "Generate draft"}
         </button>
-        <button
-          onClick={save}
-          disabled={pending}
-          className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-        >
+        <button onClick={save} disabled={pending} className="ios-btn">
           Save
         </button>
-        <button
-          onClick={download}
-          disabled={!content}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-        >
+        <button onClick={download} disabled={!content} className="ios-btn-ghost">
           Export (.md)
         </button>
         <button
           onClick={toggleFinalize}
           disabled={pending}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-60 ${
+          className="ios-btn"
+          style={
             finalized
-              ? "border border-slate-300 text-slate-700 hover:bg-slate-50"
-              : "bg-green-600 text-white hover:bg-green-700"
-          }`}
+              ? {
+                  background: "transparent",
+                  color: "var(--label)",
+                  border: "1px solid rgba(60,60,67,0.29)",
+                  fontWeight: 510,
+                }
+              : { background: "var(--green)" }
+          }
         >
           {finalized ? "Reopen" : "Finalize"}
         </button>
-        {status && <span className="text-sm text-slate-500">{status}</span>}
+        {status && (
+          <span style={{ fontSize: 14, color: "var(--label-secondary)" }}>
+            {status}
+          </span>
+        )}
       </div>
 
       {finalized && (
-        <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
-          This summary is finalized. Reopen it to make further edits.
+        <p
+          className="ios-pill"
+          style={{ color: "var(--green)", background: "rgba(52,199,89,0.15)", alignSelf: "flex-start", padding: "6px 12px" }}
+        >
+          Finalized — reopen to make further edits.
         </p>
       )}
 
@@ -115,7 +116,18 @@ export function SummaryEditor({
         disabled={finalized}
         rows={28}
         placeholder="Generate a draft to get started, then edit it here."
-        className="w-full rounded-xl border border-slate-300 bg-white p-4 font-mono text-sm leading-relaxed focus:border-brand-500 focus:outline-none disabled:bg-slate-50"
+        className="ios-card"
+        style={{
+          padding: 20,
+          border: "none",
+          outline: "none",
+          fontFamily:
+            'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+          fontSize: 14,
+          lineHeight: 1.6,
+          color: finalized ? "var(--label-secondary)" : "var(--label)",
+          resize: "vertical",
+        }}
       />
     </div>
   );

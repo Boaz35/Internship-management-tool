@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser, homePathForRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { TopBar } from "@/components/TopBar";
+import { AppShell } from "@/components/AppShell";
 import { SummaryEditor } from "@/components/SummaryEditor";
 import type { InternRow, SummaryRow, UserRow } from "@/lib/database.types";
 
@@ -27,12 +27,16 @@ export default async function SummaryPage({
 
   if (!intern) {
     return (
-      <>
-        <TopBar name={user.full_name} role={user.role} />
-        <main className="mx-auto max-w-3xl px-4 py-10 text-sm text-slate-500">
-          Intern not found or not accessible.
-        </main>
-      </>
+      <AppShell name={user.full_name} email={user.email} role={user.role}>
+        <div className="ios-page">
+          <div
+            className="ios-card"
+            style={{ padding: "24px 28px", fontSize: 15, color: "var(--label-secondary)" }}
+          >
+            Intern not found or not accessible.
+          </div>
+        </div>
+      </AppShell>
     );
   }
 
@@ -52,28 +56,39 @@ export default async function SummaryPage({
       : `/designer/intern/${params.internId}`;
 
   return (
-    <>
-      <TopBar name={user.full_name} role={user.role} />
-      <main className="mx-auto max-w-3xl space-y-5 px-4 py-8">
-        <Link href={backHref} className="text-sm text-slate-500 hover:text-slate-700">
-          ← Back to {name}
+    <AppShell name={user.full_name} email={user.email} role={user.role}>
+      <div className="ios-page">
+        <Link
+          href={backHref}
+          className="mb-[14px] inline-flex items-center gap-[6px]"
+          style={{ fontSize: 15, color: "var(--tint)" }}
+        >
+          <svg width="8" height="14" viewBox="0 0 8 14">
+            <path
+              d="M 7 1 L 1 7 L 7 13"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span>Back to {name}</span>
         </Link>
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">
-            Summary — {name}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Auto-generated from tasks, hours, and notes. Edit freely, then
-            finalize and export.
-          </p>
+        <h1 className="ios-h1">Summary — {name}</h1>
+        <p className="ios-subtitle">
+          Auto-generated from tasks, hours, and notes. Edit freely, then finalize
+          and export.
+        </p>
+        <div className="mt-8">
+          <SummaryEditor
+            internId={params.internId}
+            internName={name}
+            initialContent={summary?.content ?? ""}
+            initialFinalized={summary?.finalized ?? false}
+          />
         </div>
-        <SummaryEditor
-          internId={params.internId}
-          internName={name}
-          initialContent={summary?.content ?? ""}
-          initialFinalized={summary?.finalized ?? false}
-        />
-      </main>
-    </>
+      </div>
+    </AppShell>
   );
 }

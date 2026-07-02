@@ -2,25 +2,34 @@ export function ProgressBar({
   percent,
   label,
   sublabel,
+  height = 6,
 }: {
   percent: number;
   label?: string;
   sublabel?: string;
+  height?: number;
 }) {
   const pct = Math.max(0, Math.min(100, percent));
   return (
     <div>
       {(label || sublabel) && (
-        <div className="mb-1 flex items-baseline justify-between text-sm">
-          {label && <span className="font-medium text-slate-700">{label}</span>}
-          {sublabel && <span className="text-slate-500">{sublabel}</span>}
+        <div className="mb-2 flex items-baseline justify-between">
+          {label && (
+            <span
+              style={{ fontSize: 15, fontWeight: 590, letterSpacing: "-0.23px" }}
+            >
+              {label}
+            </span>
+          )}
+          {sublabel && (
+            <span style={{ fontSize: 15, color: "var(--label-secondary)" }}>
+              {sublabel}
+            </span>
+          )}
         </div>
       )}
-      <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
-        <div
-          className="h-full rounded-full bg-brand-600 transition-all"
-          style={{ width: `${pct}%` }}
-        />
+      <div className="ios-track" style={{ height }}>
+        <div className="ios-track-fill" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );

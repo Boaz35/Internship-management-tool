@@ -8,6 +8,7 @@ import {
   createIntern,
   updateInternDates,
 } from "@/app/actions/leader";
+import { Avatar } from "@/components/ui";
 
 export function AllocationManager({
   users,
@@ -21,61 +22,79 @@ export function AllocationManager({
   const eligibleForIntern = users.filter(
     (u) => u.role === "intern" && !internUserIds.has(u.id)
   );
-  const nameOf = (id: string | null) =>
-    users.find((u) => u.id === id)?.full_name ??
-    users.find((u) => u.id === id)?.email ??
-    "—";
+  const nameOf = (id: string | null) => {
+    const u = users.find((x) => x.id === id);
+    return u?.full_name ?? u?.email ?? "—";
+  };
 
   return (
-    <div className="space-y-8">
-      {/* Roles */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold text-slate-900">Roles</h2>
-        <p className="mb-3 text-sm text-slate-500">
-          Everyone signs in as an intern by default. Set the right role here.
-        </p>
-        <ul className="divide-y divide-slate-100">
-          {users.map((u) => (
-            <RoleRow key={u.id} user={u} />
+    <div className="flex flex-col gap-8">
+      <Section title="Roles" subtitle="Everyone signs in as an intern by default. Set the right role here.">
+        <div>
+          {users.map((u, i) => (
+            <RoleRow key={u.id} user={u} first={i === 0} />
           ))}
-        </ul>
-      </section>
+        </div>
+      </Section>
 
-      {/* Add intern */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold text-slate-900">Add an intern</h2>
+      <Section title="Add an intern">
         {eligibleForIntern.length === 0 ? (
-          <p className="text-sm text-slate-500">
+          <p style={{ fontSize: 15, color: "var(--label-secondary)" }}>
             No eligible users. Set a user&apos;s role to “intern” above first.
           </p>
         ) : (
           <AddInternForm users={eligibleForIntern} designers={designers} />
         )}
-      </section>
+      </Section>
 
-      {/* Allocation */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold text-slate-900">Allocation</h2>
+      <Section title="Allocation">
         {interns.length === 0 ? (
-          <p className="text-sm text-slate-500">No interns yet.</p>
+          <p style={{ fontSize: 15, color: "var(--label-secondary)" }}>
+            No interns yet.
+          </p>
         ) : (
-          <ul className="divide-y divide-slate-100">
-            {interns.map((intern) => (
+          <div>
+            {interns.map((intern, i) => (
               <AllocationRow
                 key={intern.id}
                 intern={intern}
                 internName={nameOf(intern.user_id)}
                 designers={designers}
+                first={i === 0}
               />
             ))}
-          </ul>
+          </div>
         )}
-      </section>
+      </Section>
     </div>
   );
 }
 
-function RoleRow({ user }: { user: UserRow }) {
+function Section({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="ios-card" style={{ padding: "20px 24px" }}>
+      <div style={{ fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>
+        {title}
+      </div>
+      {subtitle && (
+        <p style={{ margin: "4px 0 14px", fontSize: 15, color: "var(--label-secondary)" }}>
+          {subtitle}
+        </p>
+      )}
+      <div className={subtitle ? "" : "mt-3"}>{children}</div>
+    </section>
+  );
+}
+
+function RoleRow({ user, first }: { user: UserRow; first: boolean }) {
   const [role, setRole] = useState<UserRole>(user.role);
   const [pending, startTransition] = useTransition();
 
@@ -91,24 +110,35 @@ function RoleRow({ user }: { user: UserRow }) {
   }
 
   return (
-    <li className="flex items-center justify-between py-2.5 text-sm">
-      <div>
-        <div className="font-medium text-slate-800">
-          {user.full_name ?? user.email}
+    <div
+      className="flex items-center justify-between gap-3"
+      style={{
+        padding: "12px 0",
+        borderTop: first ? "none" : "1px solid var(--separator)",
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <Avatar name={user.full_name} email={user.email} size={36} />
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 510 }}>
+            {user.full_name ?? user.email}
+          </div>
+          <div style={{ fontSize: 13, color: "var(--label-secondary)" }}>
+            {user.email}
+          </div>
         </div>
-        <div className="text-xs text-slate-500">{user.email}</div>
       </div>
       <select
         value={role}
         disabled={pending}
         onChange={(e) => change(e.target.value as UserRole)}
-        className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+        className="ios-input"
       >
         <option value="intern">Intern</option>
         <option value="designer">Designer / Mentor</option>
         <option value="team_leader">Team Leader</option>
       </select>
-    </li>
+    </div>
   );
 }
 
@@ -146,13 +176,13 @@ function AddInternForm({
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-wrap items-end gap-3 text-sm">
-      <label>
-        <span className="mb-1 block text-slate-500">Person</span>
+    <form onSubmit={submit} className="flex flex-wrap items-end gap-[10px]">
+      <label className="block">
+        <span className="ios-field-label">Person</span>
         <select
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
-          className="rounded-md border border-slate-300 px-2 py-1.5"
+          className="ios-input"
         >
           {users.map((u) => (
             <option key={u.id} value={u.id}>
@@ -161,30 +191,31 @@ function AddInternForm({
           ))}
         </select>
       </label>
-      <label>
-        <span className="mb-1 block text-slate-500">Start date</span>
+      <label className="block">
+        <span className="ios-field-label">Start date</span>
         <input
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          className="rounded-md border border-slate-300 px-2 py-1.5"
+          className="ios-input"
         />
       </label>
-      <label>
-        <span className="mb-1 block text-slate-500">Target hours</span>
+      <label className="block">
+        <span className="ios-field-label">Target hours</span>
         <input
           type="number"
           value={targetHours}
           onChange={(e) => setTargetHours(e.target.value)}
-          className="w-24 rounded-md border border-slate-300 px-2 py-1.5"
+          className="ios-input"
+          style={{ width: 90 }}
         />
       </label>
-      <label>
-        <span className="mb-1 block text-slate-500">Mentor</span>
+      <label className="block">
+        <span className="ios-field-label">Mentor</span>
         <select
           value={designerId}
           onChange={(e) => setDesignerId(e.target.value)}
-          className="rounded-md border border-slate-300 px-2 py-1.5"
+          className="ios-input"
         >
           <option value="">Unassigned</option>
           {designers.map((d) => (
@@ -194,14 +225,12 @@ function AddInternForm({
           ))}
         </select>
       </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-brand-600 px-3 py-1.5 font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-      >
+      <button type="submit" disabled={pending} className="ios-btn">
         Create intern
       </button>
-      {error && <p className="w-full text-red-600">{error}</p>}
+      {error && (
+        <p style={{ width: "100%", fontSize: 13, color: "var(--red)" }}>{error}</p>
+      )}
     </form>
   );
 }
@@ -210,14 +239,14 @@ function AllocationRow({
   intern,
   internName,
   designers,
+  first,
 }: {
   intern: InternRow;
   internName: string;
   designers: UserRow[];
+  first: boolean;
 }) {
-  const [designerId, setDesignerId] = useState(
-    intern.allocated_designer_id ?? ""
-  );
+  const [designerId, setDesignerId] = useState(intern.allocated_designer_id ?? "");
   const [startDate, setStartDate] = useState(intern.start_date);
   const [endDate, setEndDate] = useState(intern.end_date ?? "");
   const [pending, startTransition] = useTransition();
@@ -248,36 +277,42 @@ function AllocationRow({
   }
 
   return (
-    <li className="flex flex-wrap items-end justify-between gap-3 py-3 text-sm">
-      <div className="font-medium text-slate-800">{internName}</div>
+    <div
+      className="flex flex-wrap items-end justify-between gap-3"
+      style={{
+        padding: "14px 0",
+        borderTop: first ? "none" : "1px solid var(--separator)",
+      }}
+    >
+      <div style={{ fontSize: 15, fontWeight: 510 }}>{internName}</div>
       <div className="flex flex-wrap items-end gap-3">
-        <label>
-          <span className="mb-1 block text-xs text-slate-500">Start</span>
+        <label className="block">
+          <span className="ios-field-label">Start</span>
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             onBlur={saveDates}
-            className="rounded-md border border-slate-300 px-2 py-1"
+            className="ios-input"
           />
         </label>
-        <label>
-          <span className="mb-1 block text-xs text-slate-500">End</span>
+        <label className="block">
+          <span className="ios-field-label">End</span>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             onBlur={saveDates}
-            className="rounded-md border border-slate-300 px-2 py-1"
+            className="ios-input"
           />
         </label>
-        <label>
-          <span className="mb-1 block text-xs text-slate-500">Mentor</span>
+        <label className="block">
+          <span className="ios-field-label">Mentor</span>
           <select
             value={designerId}
             disabled={pending}
             onChange={(e) => changeDesigner(e.target.value)}
-            className="rounded-md border border-slate-300 px-2 py-1"
+            className="ios-input"
           >
             <option value="">Unassigned</option>
             {designers.map((d) => (
@@ -288,6 +323,6 @@ function AllocationRow({
           </select>
         </label>
       </div>
-    </li>
+    </div>
   );
 }

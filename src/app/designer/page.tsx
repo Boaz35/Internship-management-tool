@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { TopBar } from "@/components/TopBar";
+import { AppShell } from "@/components/AppShell";
 import { ProgressBar } from "@/components/ProgressBar";
+import { Avatar, StatusPill } from "@/components/ui";
 import { summarizeHours } from "@/lib/progress";
 import type {
   HoursLogRow,
@@ -42,64 +43,74 @@ export default async function DesignerDashboard() {
   const userById = new Map((users ?? []).map((u) => [u.id, u as UserRow]));
 
   return (
-    <>
-      <TopBar name={user.full_name} role={user.role} />
-      <main className="mx-auto max-w-5xl space-y-6 px-4 py-8">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Your interns</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Review completed tasks, keep notes, and track hours.
-          </p>
-        </div>
+    <AppShell name={user.full_name} email={user.email} role={user.role}>
+      <div className="ios-page">
+        <h1 className="ios-h1">Your interns</h1>
+        <p className="ios-subtitle">
+          Review completed tasks, keep notes, and track hours.
+        </p>
 
         {list.length === 0 && (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
+          <div
+            className="ios-card mt-8"
+            style={{ padding: "24px 28px", fontSize: 15, color: "var(--label-secondary)" }}
+          >
             You don&apos;t have any interns allocated yet.
           </div>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="mt-8 grid gap-5 lg:grid-cols-2">
           {list.map((intern) => {
-            const iTasks = (tasks ?? []).filter(
-              (t) => t.intern_id === intern.id
-            );
+            const iTasks = (tasks ?? []).filter((t) => t.intern_id === intern.id);
             const iLogs = (logs ?? []).filter((l) => l.intern_id === intern.id);
             const pending = iTasks.filter(
               (t) => t.completed_by_intern && !t.approved_by_designer
             ).length;
+            const approved = iTasks.filter((t) => t.approved_by_designer).length;
             const hours = summarizeHours(iLogs, intern.target_hours);
             const person = userById.get(intern.user_id);
+            const name = person?.full_name ?? person?.email ?? "Intern";
 
             return (
               <Link
                 key={intern.id}
                 href={`/designer/intern/${intern.id}`}
-                className="rounded-xl border border-slate-200 bg-white p-5 transition hover:border-brand-300 hover:shadow-sm"
+                className="ios-card block transition-shadow hover:shadow-card"
+                style={{ padding: "22px 24px" }}
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h2 className="font-semibold text-slate-900">
-                      {person?.full_name ?? person?.email ?? "Intern"}
-                    </h2>
-                    <p className="text-xs text-slate-500">{person?.email}</p>
+                <div className="flex items-start gap-[14px]">
+                  <Avatar name={name} email={person?.email} size={48} seed={intern.id} />
+                  <div className="min-w-0 flex-1">
+                    <div style={{ fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>
+                      {name}
+                    </div>
+                    <div style={{ fontSize: 15, color: "var(--label-secondary)" }}>
+                      {person?.email}
+                    </div>
                   </div>
                   {pending > 0 && (
-                    <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
-                      {pending} to review
-                    </span>
+                    <StatusPill tone="red">{pending} to review</StatusPill>
                   )}
                 </div>
-                <div className="mt-4">
-                  <ProgressBar
-                    percent={hours.percent}
-                    sublabel={`${hours.worked}/${hours.target} h`}
-                  />
+                <div className="mt-5">
+                  <ProgressBar percent={hours.percent} height={5} />
+                </div>
+                <div
+                  className="mt-[6px] flex justify-between"
+                  style={{ fontSize: 13, color: "var(--label-secondary)" }}
+                >
+                  <span>
+                    {approved} of {iTasks.length} tasks approved
+                  </span>
+                  <span>
+                    {hours.worked} of {hours.target} h
+                  </span>
                 </div>
               </Link>
             );
           })}
         </div>
-      </main>
-    </>
+      </div>
+    </AppShell>
   );
 }
