@@ -27,7 +27,7 @@ function groupsForRole(role: UserRole): NavGroup[] {
             icon: <PeopleIcon />,
           },
           {
-            href: "/leader/template",
+            href: "/template",
             label: "Program template",
             icon: <ListIcon />,
           },
@@ -39,7 +39,10 @@ function groupsForRole(role: UserRole): NavGroup[] {
     return [
       {
         title: "Mentoring",
-        items: [{ href: "/designer", label: "My interns", icon: <PersonIcon /> }],
+        items: [
+          { href: "/designer", label: "My interns", icon: <PersonIcon /> },
+          { href: "/template", label: "Program template", icon: <ListIcon /> },
+        ],
       },
     ];
   }

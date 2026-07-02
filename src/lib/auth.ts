@@ -56,6 +56,13 @@ export async function requireRole(role: UserRole): Promise<UserRow> {
   return user;
 }
 
+// Requires the user to hold one of the given roles.
+export async function requireAnyRole(roles: UserRole[]): Promise<UserRow> {
+  const user = await requireUser();
+  if (!roles.includes(user.role)) redirect(homePathForRole(user.role));
+  return user;
+}
+
 export function homePathForRole(role: UserRole): string {
   switch (role) {
     case "intern":
