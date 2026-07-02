@@ -57,7 +57,7 @@ From then on you can manage roles, allocation, and the template from the UI.
 ## Progress model
 
 - **Per-milestone:** task completion (approved / total).
-- **Overall:** hours logged against the 186-hour target. Vacation and sick time don't reduce the target — they push the projected end date out (≈9 work hours/day).
+- **Overall:** hours logged against the 180-hour target. Vacation and sick time don't reduce the target — they push the projected end date out (≈9 work hours/day).
 
 ## Project structure
 

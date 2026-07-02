@@ -124,7 +124,7 @@ function AddInternForm({
     new Date().toISOString().slice(0, 10)
   );
   const [designerId, setDesignerId] = useState("");
-  const [targetHours, setTargetHours] = useState("186");
+  const [targetHours, setTargetHours] = useState("180");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -137,7 +137,7 @@ function AddInternForm({
           userId,
           startDate,
           designerId: designerId || null,
-          targetHours: parseInt(targetHours, 10) || 186,
+          targetHours: parseInt(targetHours, 10) || 180,
         });
       } catch (err: any) {
         setError(err?.message ?? "Could not create intern.");

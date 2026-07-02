@@ -40,7 +40,7 @@ export async function createIntern(input: {
       user_id: input.userId,
       start_date: input.startDate,
       end_date: input.endDate ?? null,
-      target_hours: input.targetHours ?? 186,
+      target_hours: input.targetHours ?? 180,
       allocated_designer_id: input.designerId ?? null,
     })
     .select("id")

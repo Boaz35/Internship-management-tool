@@ -59,7 +59,7 @@ create table if not exists public.interns (
   allocated_designer_id uuid references public.users(id) on delete set null,
   start_date            date not null,
   end_date              date,
-  target_hours          int not null default 186,
+  target_hours          int not null default 180,
   created_at            timestamptz not null default now()
 );
 
