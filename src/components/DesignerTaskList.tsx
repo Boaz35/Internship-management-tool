@@ -36,69 +36,27 @@ export function DesignerTaskList({
   categories?: FeedbackCategoryRow[];
   feedbackCountByTask?: Record<string, number>;
 }) {
-  const t = useTranslations("tasks");
   const [active, setActive] = useState<ActiveTask | null>(null);
 
   return (
     <div className="flex flex-col gap-4">
-      {milestones.map((m) => {
-        const group = tasks.filter((t) => t.milestone_id === m.id);
-        const approved = group.filter((t) => t.approved_by_designer).length;
-        return (
-          <section
-            key={m.id}
-            className="ios-card"
-            style={{ padding: "18px 20px 14px" }}
-          >
-            <div
-              className="flex items-baseline justify-between"
-              style={{ paddingBottom: 8 }}
-            >
-              <div style={{ fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>
-                {m.name}
-              </div>
-              <div style={{ fontSize: 13, color: "var(--label-secondary)" }}>
-                {t("approvedOf", { approved, total: group.length })}
-              </div>
-            </div>
-
-            {group.map((task) => (
-              <DesignerTaskRow
-                key={task.id}
-                task={task}
-                internId={internId}
-                readOnly={readOnly}
-                feedbackCount={feedbackCountByTask[task.id] ?? 0}
-                onFeedback={() =>
-                  setActive({
-                    taskId: task.id,
-                    taskName: task.name,
-                    milestoneName: m.name,
-                  })
-                }
-              />
-            ))}
-            {group.length === 0 && (
-              <div
-                style={{
-                  minHeight: 46,
-                  display: "flex",
-                  alignItems: "center",
-                  borderTop: "1px solid var(--separator)",
-                  fontSize: 15,
-                  color: "var(--label-tertiary)",
-                }}
-              >
-                {t("noTasks")}
-              </div>
-            )}
-
-            {!readOnly && (
-              <AddCustomTask internId={internId} milestoneId={m.id} />
-            )}
-          </section>
-        );
-      })}
+      {milestones.map((m) => (
+        <MilestoneSection
+          key={m.id}
+          milestone={m}
+          tasks={tasks.filter((t) => t.milestone_id === m.id)}
+          internId={internId}
+          readOnly={readOnly}
+          feedbackCountByTask={feedbackCountByTask}
+          onFeedback={(task) =>
+            setActive({
+              taskId: task.id,
+              taskName: task.name,
+              milestoneName: m.name,
+            })
+          }
+        />
+      ))}
 
       {active && (
         <TaskFeedbackModal
@@ -111,6 +69,103 @@ export function DesignerTaskList({
         />
       )}
     </div>
+  );
+}
+
+function MilestoneSection({
+  milestone,
+  tasks,
+  internId,
+  readOnly,
+  feedbackCountByTask,
+  onFeedback,
+}: {
+  milestone: MilestoneRow;
+  tasks: TaskRow[];
+  internId: string;
+  readOnly: boolean;
+  feedbackCountByTask: Record<string, number>;
+  onFeedback: (task: TaskRow) => void;
+}) {
+  const t = useTranslations("tasks");
+  const [showApproved, setShowApproved] = useState(false);
+
+  const activeTasks = tasks.filter((task) => !task.approved_by_designer);
+  const approvedTasks = tasks.filter((task) => task.approved_by_designer);
+
+  return (
+    <section className="ios-card" style={{ padding: "18px 20px 14px" }}>
+      <div className="flex items-baseline justify-between" style={{ paddingBottom: 8 }}>
+        <div style={{ fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>
+          {milestone.name}
+        </div>
+        <div style={{ fontSize: 13, color: "var(--label-secondary)" }}>
+          {t("approvedOf", { approved: approvedTasks.length, total: tasks.length })}
+        </div>
+      </div>
+
+      {activeTasks.map((task) => (
+        <DesignerTaskRow
+          key={task.id}
+          task={task}
+          internId={internId}
+          readOnly={readOnly}
+          feedbackCount={feedbackCountByTask[task.id] ?? 0}
+          onFeedback={() => onFeedback(task)}
+        />
+      ))}
+
+      {tasks.length === 0 && (
+        <div
+          style={{
+            minHeight: 46,
+            display: "flex",
+            alignItems: "center",
+            borderTop: "1px solid var(--separator)",
+            fontSize: 15,
+            color: "var(--label-tertiary)",
+          }}
+        >
+          {t("noTasks")}
+        </div>
+      )}
+
+      {/* Approved tasks — collapsed by default, struck through when shown. */}
+      {approvedTasks.length > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setShowApproved((s) => !s)}
+            className="flex w-full items-center gap-2"
+            style={{
+              minHeight: 40,
+              borderTop: "1px solid var(--separator)",
+              fontSize: 13,
+              fontWeight: 590,
+              color: "var(--label-secondary)",
+              cursor: "pointer",
+              textAlign: "start",
+            }}
+          >
+            <span style={{ fontSize: 11 }}>{showApproved ? "▾" : "▸"}</span>
+            <span>{t("approvedCount", { count: approvedTasks.length })}</span>
+          </button>
+          {showApproved &&
+            approvedTasks.map((task) => (
+              <DesignerTaskRow
+                key={task.id}
+                task={task}
+                internId={internId}
+                readOnly={readOnly}
+                feedbackCount={feedbackCountByTask[task.id] ?? 0}
+                onFeedback={() => onFeedback(task)}
+              />
+            ))}
+        </>
+      )}
+
+      {!readOnly && <AddCustomTask internId={internId} milestoneId={milestone.id} />}
+    </section>
   );
 }
 
@@ -156,6 +211,7 @@ function DesignerTaskRow({
           flex: 1,
           fontSize: 15,
           color: approved ? "var(--label-secondary)" : "var(--label)",
+          textDecoration: approved ? "line-through" : "none",
         }}
       >
         {task.name}
@@ -181,9 +237,7 @@ function DesignerTaskRow({
         <StatusPill tone="green">{t("approved")}</StatusPill>
       ) : completed ? (
         <StatusPill tone="tint">{t("readyToReview")}</StatusPill>
-      ) : (
-        <StatusPill tone="neutral">{t("notStarted")}</StatusPill>
-      )}
+      ) : null}
 
       {!readOnly && (
         <button

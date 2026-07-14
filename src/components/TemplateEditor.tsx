@@ -77,6 +77,7 @@ function MilestoneBlock({
   // Optimistic local order so reordering feels instant; re-syncs whenever the
   // server sends a different set/order of tasks.
   const [order, setOrder] = useState<TaskTemplateRow[]>(tasks);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const serverKey = tasks.map((t) => `${t.id}:${t.sequence}`).join("|");
   useEffect(() => {
     setOrder(tasks);
@@ -120,11 +121,18 @@ function MilestoneBlock({
     });
   }
 
-  function move(taskIndex: number, dir: -1 | 1) {
-    const target = taskIndex + dir;
-    if (target < 0 || target >= order.length) return;
+  function reorder(from: number, to: number) {
+    if (
+      from === to ||
+      from < 0 ||
+      to < 0 ||
+      from >= order.length ||
+      to >= order.length
+    )
+      return;
     const next = [...order];
-    [next[taskIndex], next[target]] = [next[target], next[taskIndex]];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
     const previous = order;
     setOrder(next); // optimistic — UI updates immediately
     startTransition(async () => {
@@ -220,10 +228,15 @@ function MilestoneBlock({
             key={task.id}
             task={task}
             links={linksByTask[task.id] ?? []}
-            isFirst={i === 0}
-            isLast={i === order.length - 1}
-            onMoveUp={() => move(i, -1)}
-            onMoveDown={() => move(i, 1)}
+            index={i}
+            isDragging={dragIndex === i}
+            isDropTarget={dragIndex !== null && dragIndex !== i}
+            onDragStart={() => setDragIndex(i)}
+            onDragEnd={() => setDragIndex(null)}
+            onDropRow={() => {
+              if (dragIndex !== null) reorder(dragIndex, i);
+              setDragIndex(null);
+            }}
           />
         ))}
         {order.length === 0 && (
@@ -264,29 +277,65 @@ function MilestoneBlock({
 function TemplateTaskRow({
   task,
   links,
-  isFirst,
-  isLast,
-  onMoveUp,
-  onMoveDown,
+  isDragging,
+  isDropTarget,
+  onDragStart,
+  onDragEnd,
+  onDropRow,
 }: {
   task: TaskTemplateRow;
   links: TaskTemplateLinkRow[];
-  isFirst: boolean;
-  isLast: boolean;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
+  index: number;
+  isDragging: boolean;
+  isDropTarget: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDropRow: () => void;
 }) {
   const t = useTranslations("template");
   const [name, setName] = useState(task.name);
+  const [over, setOver] = useState(false);
   const [pending, startTransition] = useTransition();
 
   return (
-    <div style={{ borderTop: "1px solid var(--separator)", padding: "6px 0" }}>
+    <div
+      onDragOver={(e) => {
+        if (isDropTarget) {
+          e.preventDefault();
+          setOver(true);
+        }
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={() => {
+        setOver(false);
+        onDropRow();
+      }}
+      style={{
+        borderTop: "1px solid var(--separator)",
+        padding: "6px 0",
+        opacity: isDragging ? 0.4 : 1,
+        boxShadow: over && isDropTarget ? "inset 0 2px 0 var(--tint)" : "none",
+      }}
+    >
       <div className="flex items-center gap-3" style={{ minHeight: 38 }}>
-        <div className="flex flex-col" style={{ gap: 1, flexShrink: 0 }}>
-          <ReorderButton dir="up" disabled={isFirst} onClick={onMoveUp} label={t("moveUp")} />
-          <ReorderButton dir="down" disabled={isLast} onClick={onMoveDown} label={t("moveDown")} />
-        </div>
+        <span
+          draggable
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          aria-label={t("reorder")}
+          title={t("reorder")}
+          className="flex items-center justify-center"
+          style={{ cursor: "grab", flexShrink: 0, color: "var(--label-tertiary)" }}
+        >
+          <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden>
+            <circle cx="3.5" cy="3" r="1.3" fill="currentColor" />
+            <circle cx="8.5" cy="3" r="1.3" fill="currentColor" />
+            <circle cx="3.5" cy="8" r="1.3" fill="currentColor" />
+            <circle cx="8.5" cy="8" r="1.3" fill="currentColor" />
+            <circle cx="3.5" cy="13" r="1.3" fill="currentColor" />
+            <circle cx="8.5" cy="13" r="1.3" fill="currentColor" />
+          </svg>
+        </span>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -330,42 +379,6 @@ function TemplateTaskRow({
 
       <TaskLinks templateId={task.id} links={links} />
     </div>
-  );
-}
-
-function ReorderButton({
-  dir,
-  disabled,
-  onClick,
-  label,
-}: {
-  dir: "up" | "down";
-  disabled: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      style={{
-        width: 18,
-        height: 15,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: disabled ? "var(--label-tertiary)" : "var(--label-secondary)",
-        opacity: disabled ? 0.35 : 1,
-        cursor: disabled ? "default" : "pointer",
-        lineHeight: 1,
-        fontSize: 10,
-      }}
-    >
-      {dir === "up" ? "▲" : "▼"}
-    </button>
   );
 }
 

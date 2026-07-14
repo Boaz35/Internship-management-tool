@@ -68,6 +68,7 @@
     "approve": "Approve",
     "undo": "Undo",
     "approvedOf": "{approved} of {total} approved",
+    "approvedCount": "{count} approved",
     "noTasks": "No tasks.",
     "addTask": "+ Add task",
     "taskName": "Task name",
@@ -171,6 +172,7 @@
   },
   "internTasks": {
     "approvedOf": "{approved} of {total} approved",
+    "approvedCount": "{count} approved",
     "noTasks": "No tasks yet.",
     "mentor": "mentor",
     "approved": "Approved",
@@ -243,6 +245,7 @@
     "confirmDeletePhase": "Delete the \"{name}\" phase? This removes it and its tasks for every intern.",
     "moveUp": "Move up",
     "moveDown": "Move down",
+    "reorder": "Drag to reorder",
     "addLink": "+ Add link",
     "linkName": "Label",
     "linkUrl": "https://…",

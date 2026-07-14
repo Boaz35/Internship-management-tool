@@ -68,6 +68,7 @@
     "approve": "אישור",
     "undo": "ביטול",
     "approvedOf": "{approved} מתוך {total} אושרו",
+    "approvedCount": "{count} אושרו",
     "noTasks": "אין משימות.",
     "addTask": "+ הוספת משימה",
     "taskName": "שם המשימה",
@@ -171,6 +172,7 @@
   },
   "internTasks": {
     "approvedOf": "{approved} מתוך {total} אושרו",
+    "approvedCount": "{count} אושרו",
     "noTasks": "אין עדיין משימות.",
     "mentor": "מנטור",
     "approved": "אושר",
@@ -243,6 +245,7 @@
     "confirmDeletePhase": "למחוק את השלב \"{name}\"? פעולה זו מסירה אותו ואת המשימות שלו לכל מתמחה.",
     "moveUp": "העברה למעלה",
     "moveDown": "העברה למטה",
+    "reorder": "גררו לסידור מחדש",
     "addLink": "+ הוספת קישור",
     "linkName": "תווית",
     "linkUrl": "https://…",

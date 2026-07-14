@@ -21,54 +21,99 @@ export function InternTaskList({
   tasks: TaskRow[];
   linksByKey?: Record<string, TaskLink[]>;
 }) {
-  const t = useTranslations("internTasks");
   return (
     <div className="flex flex-col gap-4">
-      {milestones.map((m) => {
-        const group = tasks.filter((t) => t.milestone_id === m.id);
-        const approved = group.filter((t) => t.approved_by_designer).length;
-        return (
-          <section
-            key={m.id}
-            className="ios-card"
-            style={{ padding: "18px 20px 8px" }}
+      {milestones.map((m) => (
+        <InternMilestoneSection
+          key={m.id}
+          milestone={m}
+          tasks={tasks.filter((t) => t.milestone_id === m.id)}
+          linksByKey={linksByKey}
+        />
+      ))}
+    </div>
+  );
+}
+
+function InternMilestoneSection({
+  milestone,
+  tasks,
+  linksByKey,
+}: {
+  milestone: MilestoneRow;
+  tasks: TaskRow[];
+  linksByKey: Record<string, TaskLink[]>;
+}) {
+  const t = useTranslations("internTasks");
+  const [showApproved, setShowApproved] = useState(false);
+
+  const activeTasks = tasks.filter((task) => !task.approved_by_designer);
+  const approvedTasks = tasks.filter((task) => task.approved_by_designer);
+
+  return (
+    <section className="ios-card" style={{ padding: "18px 20px 8px" }}>
+      <div className="flex items-baseline justify-between" style={{ paddingBottom: 8 }}>
+        <div style={{ fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>
+          {milestone.name}
+        </div>
+        <div style={{ fontSize: 13, color: "var(--label-secondary)" }}>
+          {t("approvedOf", { approved: approvedTasks.length, total: tasks.length })}
+        </div>
+      </div>
+
+      {activeTasks.map((task) => (
+        <TaskRowItem
+          key={task.id}
+          task={task}
+          links={linksByKey[taskKey(task.milestone_id, task.name)] ?? []}
+        />
+      ))}
+
+      {tasks.length === 0 && (
+        <div
+          style={{
+            minHeight: 44,
+            display: "flex",
+            alignItems: "center",
+            borderTop: "1px solid var(--separator)",
+            fontSize: 15,
+            color: "var(--label-tertiary)",
+          }}
+        >
+          {t("noTasks")}
+        </div>
+      )}
+
+      {approvedTasks.length > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setShowApproved((s) => !s)}
+            className="flex w-full items-center gap-2"
+            style={{
+              minHeight: 40,
+              borderTop: "1px solid var(--separator)",
+              fontSize: 13,
+              fontWeight: 590,
+              color: "var(--label-secondary)",
+              cursor: "pointer",
+              textAlign: "start",
+            }}
           >
-            <div
-              className="flex items-baseline justify-between"
-              style={{ paddingBottom: 8 }}
-            >
-              <div style={{ fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>
-                {m.name}
-              </div>
-              <div style={{ fontSize: 13, color: "var(--label-secondary)" }}>
-                {t("approvedOf", { approved, total: group.length })}
-              </div>
-            </div>
-            {group.map((task) => (
+            <span style={{ fontSize: 11 }}>{showApproved ? "▾" : "▸"}</span>
+            <span>{t("approvedCount", { count: approvedTasks.length })}</span>
+          </button>
+          {showApproved &&
+            approvedTasks.map((task) => (
               <TaskRowItem
                 key={task.id}
                 task={task}
                 links={linksByKey[taskKey(task.milestone_id, task.name)] ?? []}
               />
             ))}
-            {group.length === 0 && (
-              <div
-                style={{
-                  minHeight: 44,
-                  display: "flex",
-                  alignItems: "center",
-                  borderTop: "1px solid var(--separator)",
-                  fontSize: 15,
-                  color: "var(--label-tertiary)",
-                }}
-              >
-                {t("noTasks")}
-              </div>
-            )}
-          </section>
-        );
-      })}
-    </div>
+        </>
+      )}
+    </section>
   );
 }
 

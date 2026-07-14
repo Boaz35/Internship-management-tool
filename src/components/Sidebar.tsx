@@ -94,26 +94,8 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Search (decorative) */}
-      <div
-        className="flex items-center gap-[7px]"
-        style={{
-          margin: "18px 0 6px",
-          height: 36,
-          borderRadius: 100,
-          background: "var(--fill-tertiary)",
-          padding: "0 12px",
-        }}
-      >
-        <svg width="15" height="15" viewBox="0 0 15 15">
-          <circle cx="6.5" cy="6.5" r="4.75" fill="none" stroke="#7D7D7D" strokeWidth="1.5" />
-          <line x1="10.2" y1="10.2" x2="13.4" y2="13.4" stroke="#7D7D7D" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-        <span style={{ fontSize: 15, color: "var(--label-tertiary)" }}>{t("search")}</span>
-      </div>
-
       {/* Nav */}
-      <nav className="mt-2 flex flex-1 flex-col gap-[2px] overflow-y-auto">
+      <nav className="mt-5 flex flex-1 flex-col gap-[2px] overflow-y-auto">
         {groups.map((group) => (
           <div key={group.title}>
             <div
