@@ -15,16 +15,8 @@ import type {
 
 async function assertCanAccess(internId: string) {
   const user = await requireUser();
-  if (user.role === "team_leader") return user;
-  const supabase = createClient();
-  const { data: intern } = await supabase
-    .from("interns")
-    .select("allocated_designer_id")
-    .eq("id", internId)
-    .single();
-  if (user.role === "designer" && intern?.allocated_designer_id === user.id) {
-    return user;
-  }
+  // Any mentor (designer) or team leader can access any intern's summary.
+  if (user.role === "team_leader" || user.role === "designer") return user;
   throw new Error("Not allowed.");
 }
 

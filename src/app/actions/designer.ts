@@ -9,12 +9,11 @@ async function assertCanMentor(internId: string) {
   const supabase = createClient();
   const { data: intern } = await supabase
     .from("interns")
-    .select("id, allocated_designer_id")
+    .select("id")
     .eq("id", internId)
     .single();
-  const allowed =
-    user.role === "team_leader" ||
-    (user.role === "designer" && intern?.allocated_designer_id === user.id);
+  // Any mentor (designer) or team leader can mentor any intern.
+  const allowed = user.role === "team_leader" || user.role === "designer";
   if (!intern || !allowed) throw new Error("Not allowed for this intern.");
   return user;
 }

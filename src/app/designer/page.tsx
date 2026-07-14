@@ -18,10 +18,10 @@ export default async function DesignerDashboard() {
   const user = await requireRole("designer");
   const supabase = createClient();
 
+  // Mentors see all interns, not just the ones allocated to them.
   const { data: interns } = await supabase
     .from("interns")
     .select("*")
-    .eq("allocated_designer_id", user.id)
     .returns<InternRow[]>();
 
   const list = interns ?? [];
