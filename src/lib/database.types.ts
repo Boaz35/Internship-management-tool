@@ -67,6 +67,9 @@ export interface TaskRow {
   id: string;
   intern_id: string;
   milestone_id: string;
+  // For source='template' tasks: the template task this was copied from (null
+  // for custom tasks or legacy copies that couldn't be reconciled).
+  template_id: string | null;
   name: string;
   source: TaskSource;
   completed_by_intern: boolean;

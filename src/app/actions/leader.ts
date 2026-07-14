@@ -93,7 +93,7 @@ async function instantiateTemplateTasks(internId: string) {
   const supabase = createClient();
   const { data: templates } = await supabase
     .from("task_templates")
-    .select("milestone_id, name");
+    .select("id, milestone_id, name");
   if (!templates || templates.length === 0) return;
 
   const rows = templates.map((t) => ({
@@ -101,6 +101,7 @@ async function instantiateTemplateTasks(internId: string) {
     milestone_id: t.milestone_id,
     name: t.name,
     source: "template" as const,
+    template_id: t.id,
   }));
   await supabase.from("tasks").insert(rows);
 }
@@ -130,12 +131,14 @@ export async function addTemplateTask(milestoneId: string, name: string) {
     .limit(1);
   const nextSeq = (existing?.[0]?.sequence ?? 0) + 1;
 
-  const { error } = await supabase
+  const { data: tpl, error } = await supabase
     .from("task_templates")
-    .insert({ milestone_id: milestoneId, name: name.trim(), sequence: nextSeq });
-  if (error) throw new Error(error.message);
+    .insert({ milestone_id: milestoneId, name: name.trim(), sequence: nextSeq })
+    .select("id")
+    .single();
+  if (error || !tpl) throw new Error(error?.message ?? "Could not add task.");
 
-  // Propagate to existing interns.
+  // Propagate to existing interns, linked back to the new template task.
   const { data: interns } = await supabase.from("interns").select("id");
   if (interns && interns.length > 0) {
     const rows = interns.map((i: { id: string }) => ({
@@ -143,6 +146,7 @@ export async function addTemplateTask(milestoneId: string, name: string) {
       milestone_id: milestoneId,
       name: name.trim(),
       source: "template" as const,
+      template_id: tpl.id,
     }));
     const { error: taskErr } = await supabase.from("tasks").insert(rows);
     if (taskErr) throw new Error(taskErr.message);
@@ -174,13 +178,22 @@ export async function renameTemplateTask(id: string, name: string) {
   if (error) throw new Error(error.message);
 
   if (tpl && tpl.name !== newName) {
-    const { error: taskErr } = await supabase
+    // Primary: every copy linked to this template task.
+    const { error: linkedErr } = await supabase
       .from("tasks")
       .update({ name: newName })
+      .eq("template_id", id);
+    if (linkedErr) throw new Error(linkedErr.message);
+
+    // Fallback: legacy copies not yet linked, matched by phase + old name.
+    const { error: legacyErr } = await supabase
+      .from("tasks")
+      .update({ name: newName, template_id: id })
+      .is("template_id", null)
       .eq("milestone_id", tpl.milestone_id)
       .eq("name", tpl.name)
       .eq("source", "template");
-    if (taskErr) throw new Error(taskErr.message);
+    if (legacyErr) throw new Error(legacyErr.message);
   }
 
   revalidateTemplate();
