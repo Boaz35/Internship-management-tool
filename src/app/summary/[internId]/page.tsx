@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireUser, homePathForRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
@@ -14,9 +15,11 @@ export default async function SummaryPage({
   params: { internId: string };
 }) {
   const user = await requireUser();
-  // Interns cannot view summaries (they contain private notes).
+  // Interns cannot view summaries (they contain private feedback).
   if (user.role === "intern") redirect(homePathForRole(user.role));
 
+  const t = await getTranslations("summary");
+  const tc = await getTranslations("common");
   const supabase = createClient();
 
   const { data: intern } = await supabase
@@ -33,7 +36,7 @@ export default async function SummaryPage({
             className="ios-card"
             style={{ padding: "24px 28px", fontSize: 15, color: "var(--label-secondary)" }}
           >
-            Intern not found or not accessible.
+            {tc("notFound")}
           </div>
         </div>
       </AppShell>
@@ -63,7 +66,7 @@ export default async function SummaryPage({
           className="mb-[14px] inline-flex items-center gap-[6px]"
           style={{ fontSize: 15, color: "var(--tint)" }}
         >
-          <svg width="8" height="14" viewBox="0 0 8 14">
+          <svg width="8" height="14" viewBox="0 0 8 14" style={{ transform: "scaleX(var(--dir-flip, 1))" }}>
             <path
               d="M 7 1 L 1 7 L 7 13"
               fill="none"
@@ -73,13 +76,10 @@ export default async function SummaryPage({
               strokeLinejoin="round"
             />
           </svg>
-          <span>Back to {name}</span>
+          <span>{t("backTo", { name })}</span>
         </Link>
-        <h1 className="ios-h1">Summary — {name}</h1>
-        <p className="ios-subtitle">
-          Auto-generated from tasks, hours, and notes. Edit freely, then finalize
-          and export.
-        </p>
+        <h1 className="ios-h1">{t("pageTitle", { name })}</h1>
+        <p className="ios-subtitle">{t("pageSubtitle")}</p>
         <div className="mt-8">
           <SummaryEditor
             internId={params.internId}

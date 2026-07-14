@@ -17,7 +17,7 @@ export default async function LeaderInternPage({
         <InternDetail
           internId={params.id}
           backHref="/leader"
-          backLabel="Program overview"
+          backLabelKey="backToOverview"
         />
       </div>
     </AppShell>

@@ -2,31 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { UserRole } from "@/lib/database.types";
 import { initialsOf } from "@/components/ui";
-
-const ROLE_LABEL: Record<UserRole, string> = {
-  intern: "Intern",
-  designer: "Mentor",
-  team_leader: "Team Leader",
-};
 
 type NavItem = { href: string; label: string; icon: React.ReactNode };
 type NavGroup = { title: string; items: NavItem[] };
 
-function groupsForRole(role: UserRole): NavGroup[] {
+type Nav = ReturnType<typeof useTranslations>;
+
+function groupsForRole(role: UserRole, t: Nav): NavGroup[] {
   if (role === "team_leader") {
     return [
       {
-        title: "Team Leader",
+        title: t("groupLeader"),
         items: [
-          { href: "/leader", label: "Program overview", icon: <GridIcon /> },
+          { href: "/leader", label: t("programOverview"), icon: <GridIcon /> },
           {
             href: "/leader/allocation",
-            label: "People & allocation",
+            label: t("peopleAllocation"),
             icon: <PeopleIcon />,
           },
-          { href: "/template", label: "Program template", icon: <ListIcon /> },
+          { href: "/template", label: t("programTemplate"), icon: <ListIcon /> },
         ],
       },
     ];
@@ -34,18 +31,18 @@ function groupsForRole(role: UserRole): NavGroup[] {
   if (role === "designer") {
     return [
       {
-        title: "Mentoring",
+        title: t("groupMentoring"),
         items: [
-          { href: "/designer", label: "My interns", icon: <PersonIcon /> },
-          { href: "/template", label: "Program template", icon: <ListIcon /> },
+          { href: "/designer", label: t("myInterns"), icon: <PersonIcon /> },
+          { href: "/template", label: t("programTemplate"), icon: <ListIcon /> },
         ],
       },
     ];
   }
   return [
     {
-      title: "Intern",
-      items: [{ href: "/intern", label: "My dashboard", icon: <GaugeIcon /> }],
+      title: t("groupIntern"),
+      items: [{ href: "/intern", label: t("myDashboard"), icon: <GaugeIcon /> }],
     },
   ];
 }
@@ -60,7 +57,9 @@ export function Sidebar({
   role: UserRole;
 }) {
   const pathname = usePathname();
-  const groups = groupsForRole(role);
+  const t = useTranslations("nav");
+  const tRoles = useTranslations("roles");
+  const groups = groupsForRole(role, t);
 
   return (
     <aside
@@ -68,7 +67,8 @@ export function Sidebar({
       style={{
         width: 292,
         flexShrink: 0,
-        padding: "24px 16px 16px 20px",
+        paddingBlock: "24px 16px",
+        paddingInline: "20px 16px",
         boxSizing: "border-box",
         height: "100vh",
       }}
@@ -90,7 +90,7 @@ export function Sidebar({
             letterSpacing: "0.08em",
           }}
         >
-          Internship program
+          {t("programEyebrow")}
         </div>
       </div>
 
@@ -109,7 +109,7 @@ export function Sidebar({
           <circle cx="6.5" cy="6.5" r="4.75" fill="none" stroke="#7D7D7D" strokeWidth="1.5" />
           <line x1="10.2" y1="10.2" x2="13.4" y2="13.4" stroke="#7D7D7D" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
-        <span style={{ fontSize: 15, color: "var(--label-tertiary)" }}>Search</span>
+        <span style={{ fontSize: 15, color: "var(--label-tertiary)" }}>{t("search")}</span>
       </div>
 
       {/* Nav */}
@@ -183,11 +183,11 @@ export function Sidebar({
             {name ?? email}
           </div>
           <div style={{ fontSize: 13, color: "var(--label-secondary)" }}>
-            {ROLE_LABEL[role]}
+            {tRoles(role)}
           </div>
         </div>
         <form action="/auth/signout" method="post" className="flex">
-          <button type="submit" title="Sign out" style={{ cursor: "pointer" }}>
+          <button type="submit" title={t("signOut")} style={{ cursor: "pointer" }}>
             <svg width="15" height="15" viewBox="0 0 15 15">
               <rect x="1.5" y="1.5" width="8" height="12" rx="2.5" fill="none" stroke="#7D7D7D" strokeWidth="1.4" />
               <line x1="6" y1="7.5" x2="13.5" y2="7.5" stroke="#7D7D7D" strokeWidth="1.4" strokeLinecap="round" />

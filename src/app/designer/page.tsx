@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
@@ -16,6 +17,8 @@ export const dynamic = "force-dynamic";
 
 export default async function DesignerDashboard() {
   const user = await requireRole("designer");
+  const t = await getTranslations("designerDash");
+  const tRoles = await getTranslations("roles");
   const supabase = createClient();
 
   // Mentors see all interns, not just the ones allocated to them.
@@ -45,17 +48,15 @@ export default async function DesignerDashboard() {
   return (
     <AppShell name={user.full_name} email={user.email} role={user.role}>
       <div className="ios-page">
-        <h1 className="ios-h1">Your interns</h1>
-        <p className="ios-subtitle">
-          Review completed tasks, keep notes, and track hours.
-        </p>
+        <h1 className="ios-h1">{t("title")}</h1>
+        <p className="ios-subtitle">{t("subtitle")}</p>
 
         {list.length === 0 && (
           <div
             className="ios-card mt-8"
             style={{ padding: "24px 28px", fontSize: 15, color: "var(--label-secondary)" }}
           >
-            You don&apos;t have any interns allocated yet.
+            {t("noInterns")}
           </div>
         )}
 
@@ -69,7 +70,7 @@ export default async function DesignerDashboard() {
             const approved = iTasks.filter((t) => t.approved_by_designer).length;
             const hours = summarizeHours(iLogs, intern.target_hours);
             const person = userById.get(intern.user_id);
-            const name = person?.full_name ?? person?.email ?? "Intern";
+            const name = person?.full_name ?? person?.email ?? tRoles("intern");
 
             return (
               <Link
@@ -89,7 +90,7 @@ export default async function DesignerDashboard() {
                     </div>
                   </div>
                   {pending > 0 && (
-                    <StatusPill tone="red">{pending} to review</StatusPill>
+                    <StatusPill tone="red">{t("toReview", { count: pending })}</StatusPill>
                   )}
                 </div>
                 <div className="mt-5">
@@ -100,10 +101,10 @@ export default async function DesignerDashboard() {
                   style={{ fontSize: 13, color: "var(--label-secondary)" }}
                 >
                   <span>
-                    {approved} of {iTasks.length} tasks approved
+                    {t("tasksApproved", { approved, total: iTasks.length })}
                   </span>
                   <span>
-                    {hours.worked} of {hours.target} h
+                    {t("hoursShort", { worked: hours.worked, target: hours.target })}
                   </span>
                 </div>
               </Link>

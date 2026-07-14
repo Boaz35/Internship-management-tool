@@ -60,11 +60,16 @@ export function milestoneProgress(tasks: TaskRow[]): MilestoneProgress {
   return { total, approved, percent };
 }
 
-export function formatDate(value: string | Date | null): string {
+export function formatDate(
+  value: string | Date | null,
+  locale?: string
+): string {
   if (!value) return "—";
   const d = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString(undefined, {
+  const intlLocale =
+    locale === "he" ? "he-IL" : locale === "en" ? "en-US" : undefined;
+  return d.toLocaleDateString(intlLocale, {
     year: "numeric",
     month: "short",
     day: "numeric",

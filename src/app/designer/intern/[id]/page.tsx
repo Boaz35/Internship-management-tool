@@ -17,7 +17,7 @@ export default async function DesignerInternPage({
         <InternDetail
           internId={params.id}
           backHref="/designer"
-          backLabel="Your interns"
+          backLabelKey="backToInterns"
         />
       </div>
     </AppShell>

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AllocationPage() {
   const user = await requireRole("team_leader");
+  const t = await getTranslations("allocation");
   const supabase = createClient();
 
   const [{ data: users }, { data: interns }] = await Promise.all([
@@ -18,10 +20,8 @@ export default async function AllocationPage() {
   return (
     <AppShell name={user.full_name} email={user.email} role={user.role}>
       <div className="ios-page">
-        <h1 className="ios-h1">People &amp; allocation</h1>
-        <p className="ios-subtitle">
-          Manage roles, add interns, and assign mentors.
-        </p>
+        <h1 className="ios-h1">{t("title")}</h1>
+        <p className="ios-subtitle">{t("subtitle")}</p>
         <div className="mt-8">
           <AllocationManager
             users={(users as UserRow[]) ?? []}

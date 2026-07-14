@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
 
 export default async function InternDashboard() {
   const user = await requireRole("intern");
+  const t = await getTranslations("internDash");
   const supabase = createClient();
 
   const { data: intern } = await supabase
@@ -32,8 +34,7 @@ export default async function InternDashboard() {
             className="ios-card"
             style={{ padding: "24px 28px", fontSize: 15, color: "var(--label-secondary)" }}
           >
-            Your internship hasn&apos;t been set up yet. A team leader needs to
-            create your intern record. Check back shortly.
+            {t("notSetUp")}
           </div>
         </div>
       </AppShell>
@@ -56,8 +57,10 @@ export default async function InternDashboard() {
   return (
     <AppShell name={user.full_name} email={user.email} role={user.role}>
       <div className="ios-page">
-        <h1 className="ios-h1">Welcome{firstName ? `, ${firstName}` : ""}</h1>
-        <p className="ios-subtitle">Track your tasks and log your hours here.</p>
+        <h1 className="ios-h1">
+          {firstName ? t("welcomeName", { name: firstName }) : t("welcome")}
+        </h1>
+        <p className="ios-subtitle">{t("subtitle")}</p>
 
         <div className="mt-8">
           <HoursOverview
@@ -68,14 +71,14 @@ export default async function InternDashboard() {
 
         <div className="mt-8 grid items-start gap-7 lg:grid-cols-2">
           <div>
-            <SectionLabel>Your program</SectionLabel>
+            <SectionLabel>{t("yourProgram")}</SectionLabel>
             <InternTaskList
               milestones={(milestones as MilestoneRow[]) ?? []}
               tasks={(tasks as TaskRow[]) ?? []}
             />
           </div>
           <div>
-            <SectionLabel>Hours</SectionLabel>
+            <SectionLabel>{t("hours")}</SectionLabel>
             <HoursLogger logs={(logs as HoursLogRow[]) ?? []} />
           </div>
         </div>

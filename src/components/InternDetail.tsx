@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { DesignerTaskList } from "@/components/DesignerTaskList";
-import { NotesPanel } from "@/components/NotesPanel";
+import { OverallFeedbackPanel } from "@/components/OverallFeedbackPanel";
+import type { FeedbackEntryView } from "@/components/FeedbackHistory";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Avatar, SectionLabel } from "@/components/ui";
 import {
@@ -10,10 +12,12 @@ import {
   projectEndDate,
 } from "@/lib/progress";
 import type {
+  FeedbackCategoryRow,
+  FeedbackEntryRow,
+  FeedbackRatingRow,
   HoursLogRow,
   InternRow,
   MilestoneRow,
-  NoteRow,
   TaskRow,
   UserRow,
 } from "@/lib/database.types";
@@ -22,13 +26,15 @@ import type {
 export async function InternDetail({
   internId,
   backHref,
-  backLabel,
+  backLabelKey,
 }: {
   internId: string;
   backHref: string;
-  backLabel: string;
+  backLabelKey: "backToInterns" | "backToOverview";
 }) {
   const supabase = createClient();
+  const t = await getTranslations("intern");
+  const locale = await getLocale();
 
   const { data: intern } = await supabase
     .from("interns")
@@ -37,12 +43,13 @@ export async function InternDetail({
     .single<InternRow>();
 
   if (!intern) {
+    const tc = await getTranslations("common");
     return (
       <div
         className="ios-card"
         style={{ padding: "24px 28px", fontSize: 15, color: "var(--label-secondary)" }}
       >
-        Intern not found or not accessible.
+        {tc("notFound")}
       </div>
     );
   }
@@ -52,7 +59,8 @@ export async function InternDetail({
     { data: milestones },
     { data: tasks },
     { data: logs },
-    { data: notes },
+    { data: categories },
+    { data: entries },
   ] = await Promise.all([
     supabase.from("users").select("*").eq("id", intern.user_id).single<UserRow>(),
     supabase.from("milestones").select("*").order("sequence"),
@@ -63,11 +71,49 @@ export async function InternDetail({
       .eq("intern_id", internId)
       .order("date", { ascending: false }),
     supabase
-      .from("notes")
+      .from("feedback_categories")
+      .select("*")
+      .eq("active", true)
+      .order("sequence"),
+    supabase
+      .from("feedback_entries")
       .select("*")
       .eq("intern_id", internId)
       .order("created_at", { ascending: false }),
   ]);
+
+  const entryRows = (entries as FeedbackEntryRow[]) ?? [];
+  let ratings: FeedbackRatingRow[] = [];
+  if (entryRows.length > 0) {
+    const { data: r } = await supabase
+      .from("feedback_ratings")
+      .select("*")
+      .in(
+        "entry_id",
+        entryRows.map((e) => e.id)
+      );
+    ratings = (r as FeedbackRatingRow[]) ?? [];
+  }
+
+  const ratingsByEntry = new Map<string, FeedbackRatingRow[]>();
+  for (const r of ratings) {
+    const list = ratingsByEntry.get(r.entry_id) ?? [];
+    list.push(r);
+    ratingsByEntry.set(r.entry_id, list);
+  }
+  const entryViews: FeedbackEntryView[] = entryRows.map((e) => ({
+    ...e,
+    ratings: ratingsByEntry.get(e.id) ?? [],
+  }));
+
+  const feedbackCountByTask: Record<string, number> = {};
+  for (const e of entryRows) {
+    if (e.task_id) feedbackCountByTask[e.task_id] = (feedbackCountByTask[e.task_id] ?? 0) + 1;
+  }
+
+  const taskRows = (tasks as TaskRow[]) ?? [];
+  const taskNames: Record<string, string> = {};
+  for (const tk of taskRows) taskNames[tk.id] = tk.name;
 
   const name = person?.full_name ?? person?.email ?? "Intern";
   const hours = summarizeHours((logs as HoursLogRow[]) ?? [], intern.target_hours);
@@ -80,7 +126,7 @@ export async function InternDetail({
         className="mb-[14px] inline-flex items-center gap-[6px]"
         style={{ fontSize: 15, color: "var(--tint)" }}
       >
-        <svg width="8" height="14" viewBox="0 0 8 14">
+        <svg width="8" height="14" viewBox="0 0 8 14" style={{ transform: "scaleX(var(--dir-flip, 1))" }}>
           <path
             d="M 7 1 L 1 7 L 7 13"
             fill="none"
@@ -90,7 +136,7 @@ export async function InternDetail({
             strokeLinejoin="round"
           />
         </svg>
-        <span>{backLabel}</span>
+        <span>{t(backLabelKey)}</span>
       </Link>
 
       <div className="flex items-end justify-between gap-4">
@@ -99,8 +145,8 @@ export async function InternDetail({
           <div>
             <h1 className="ios-h1">{name}</h1>
             <p className="ios-subtitle" style={{ marginTop: 2 }}>
-              {person?.email} · {formatDate(intern.start_date)} –{" "}
-              {formatDate(intern.end_date)}
+              {person?.email} · {formatDate(intern.start_date, locale)} –{" "}
+              {formatDate(intern.end_date, locale)}
             </p>
           </div>
         </div>
@@ -117,8 +163,8 @@ export async function InternDetail({
             fontWeight: 500,
           }}
         >
-          <span>Summary document</span>
-          <svg width="7" height="12" viewBox="0 0 7 12">
+          <span>{t("summaryDocument")}</span>
+          <svg width="7" height="12" viewBox="0 0 7 12" style={{ transform: "scaleX(var(--dir-flip, 1))" }}>
             <path
               d="M 1 1 L 6 6 L 1 11"
               fill="none"
@@ -133,12 +179,12 @@ export async function InternDetail({
 
       <div className="ios-card mt-7" style={{ padding: "20px 24px" }}>
         <div className="flex items-baseline justify-between">
-          <div style={{ fontSize: 15, fontWeight: 590 }}>Hours toward target</div>
+          <div style={{ fontSize: 15, fontWeight: 590 }}>{t("hoursTowardTarget")}</div>
           <div style={{ fontSize: 15, color: "var(--label-secondary)" }}>
-            {hours.worked} of {hours.target} h
+            {t("hoursOf", { worked: hours.worked, target: hours.target })}
             {hours.remaining > 0
-              ? ` · projected end ${formatDate(projected)}`
-              : " · complete"}
+              ? t("projectedEnd", { date: formatDate(projected, locale) })
+              : t("complete")}
           </div>
         </div>
         <div className="mt-3">
@@ -151,14 +197,21 @@ export async function InternDetail({
         style={{ gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr)" }}
       >
         <div>
-          <SectionLabel>Tasks</SectionLabel>
+          <SectionLabel>{t("tasks")}</SectionLabel>
           <DesignerTaskList
             internId={internId}
             milestones={(milestones as MilestoneRow[]) ?? []}
-            tasks={(tasks as TaskRow[]) ?? []}
+            tasks={taskRows}
+            categories={(categories as FeedbackCategoryRow[]) ?? []}
+            feedbackCountByTask={feedbackCountByTask}
           />
         </div>
-        <NotesPanel internId={internId} notes={(notes as NoteRow[]) ?? []} />
+        <OverallFeedbackPanel
+          internId={internId}
+          categories={(categories as FeedbackCategoryRow[]) ?? []}
+          entries={entryViews}
+          taskNames={taskNames}
+        />
       </div>
     </div>
   );

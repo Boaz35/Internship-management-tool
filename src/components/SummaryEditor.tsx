@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import {
   generateSummary,
   saveSummary,
@@ -18,6 +19,8 @@ export function SummaryEditor({
   initialContent: string;
   initialFinalized: boolean;
 }) {
+  const t = useTranslations("summary");
+  const tc = useTranslations("common");
   const [content, setContent] = useState(initialContent);
   const [finalized, setFinalized] = useState(initialFinalized);
   const [status, setStatus] = useState<string | null>(null);
@@ -30,7 +33,7 @@ export function SummaryEditor({
         await fn();
         setStatus(message);
       } catch (e: any) {
-        setStatus(e?.message ?? "Something went wrong.");
+        setStatus(e?.message ?? tc("somethingWrong"));
       }
     });
   }
@@ -39,11 +42,11 @@ export function SummaryEditor({
     run(async () => {
       const fresh = await generateSummary(internId);
       setContent(fresh);
-    }, "Draft regenerated from the latest data.");
+    }, t("draftRegenerated"));
   }
 
   function save() {
-    run(() => saveSummary(internId, content), "Saved.");
+    run(() => saveSummary(internId, content), t("savedMsg"));
   }
 
   function toggleFinalize() {
@@ -51,7 +54,7 @@ export function SummaryEditor({
     setFinalized(next);
     run(
       () => finalizeSummary(internId, next),
-      next ? "Marked as finalized." : "Reopened for editing."
+      next ? t("markedFinalized") : t("reopened")
     );
   }
 
@@ -69,13 +72,13 @@ export function SummaryEditor({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <button onClick={regenerate} disabled={pending} className="ios-btn-ghost">
-          {content ? "Regenerate draft" : "Generate draft"}
+          {content ? t("regenerateDraft") : t("generateDraft")}
         </button>
         <button onClick={save} disabled={pending} className="ios-btn">
-          Save
+          {tc("save")}
         </button>
         <button onClick={download} disabled={!content} className="ios-btn-ghost">
-          Export (.md)
+          {t("export")}
         </button>
         <button
           onClick={toggleFinalize}
@@ -92,7 +95,7 @@ export function SummaryEditor({
               : { background: "var(--green)", color: "#fff" }
           }
         >
-          {finalized ? "Reopen" : "Finalize"}
+          {finalized ? t("reopen") : t("finalize")}
         </button>
         {status && (
           <span style={{ fontSize: 14, color: "var(--label-secondary)" }}>
@@ -106,7 +109,7 @@ export function SummaryEditor({
           className="ios-pill"
           style={{ color: "var(--green)", background: "rgba(31,110,71,0.12)", alignSelf: "flex-start", padding: "6px 12px" }}
         >
-          Finalized — reopen to make further edits.
+          {t("finalizedNote")}
         </p>
       )}
 
@@ -115,7 +118,7 @@ export function SummaryEditor({
         onChange={(e) => setContent(e.target.value)}
         disabled={finalized}
         rows={28}
-        placeholder="Generate a draft to get started, then edit it here."
+        placeholder={t("editorPlaceholder")}
         className="ios-card"
         style={{
           padding: 20,

@@ -4,6 +4,9 @@
 export type UserRole = "intern" | "designer" | "team_leader";
 export type TaskSource = "template" | "custom";
 export type HoursType = "work" | "vacation" | "sick";
+export type FeedbackRating = "excellent" | "good" | "fair";
+export type FeedbackKind = "task" | "overall";
+export type FeedbackCategorySource = "predefined" | "custom";
 
 export interface UserRow {
   id: string;
@@ -77,6 +80,41 @@ export interface SummaryRow {
   updated_at: string;
 }
 
+export interface FeedbackCategoryRow {
+  id: string;
+  name_en: string;
+  name_he: string;
+  tag_en: string | null;
+  tag_he: string | null;
+  description_en: string | null;
+  description_he: string | null;
+  source: FeedbackCategorySource;
+  sequence: number;
+  active: boolean;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface FeedbackEntryRow {
+  id: string;
+  intern_id: string;
+  task_id: string | null;
+  kind: FeedbackKind;
+  author_id: string | null;
+  author_name: string | null;
+  context: string | null;
+  created_at: string;
+}
+
+export interface FeedbackRatingRow {
+  id: string;
+  entry_id: string;
+  category_id: string;
+  rating: FeedbackRating | null;
+  comment: string | null;
+  created_at: string;
+}
+
 type Table<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -95,6 +133,9 @@ export interface Database {
       hours_logs: Table<HoursLogRow>;
       notes: Table<NoteRow>;
       summaries: Table<SummaryRow>;
+      feedback_categories: Table<FeedbackCategoryRow>;
+      feedback_entries: Table<FeedbackEntryRow>;
+      feedback_ratings: Table<FeedbackRatingRow>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -102,6 +143,7 @@ export interface Database {
       user_role: UserRole;
       task_source: TaskSource;
       hours_type: HoursType;
+      feedback_rating: FeedbackRating;
     };
     CompositeTypes: Record<string, never>;
   };

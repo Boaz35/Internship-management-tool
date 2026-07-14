@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
@@ -15,6 +16,8 @@ export const dynamic = "force-dynamic";
 
 export default async function LeaderOverview() {
   const user = await requireRole("team_leader");
+  const t = await getTranslations("leaderDash");
+  const tRoles = await getTranslations("roles");
   const supabase = createClient();
 
   const { data: interns } = await supabase
@@ -38,16 +41,15 @@ export default async function LeaderOverview() {
       <div className="ios-page">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <h1 className="ios-h1">Program overview</h1>
+            <h1 className="ios-h1">{t("title")}</h1>
             <p className="ios-subtitle">
-              {list.length} {list.length === 1 ? "intern" : "interns"} ·{" "}
-              {mentorCount} {mentorCount === 1 ? "mentor" : "mentors"}
+              {t("counts", { interns: list.length, mentors: mentorCount })}
             </p>
           </div>
         </div>
 
         <div className="mt-9">
-          <SectionLabel>Interns</SectionLabel>
+          <SectionLabel>{t("interns")}</SectionLabel>
         </div>
 
         {list.length === 0 ? (
@@ -55,11 +57,11 @@ export default async function LeaderOverview() {
             className="ios-card"
             style={{ padding: "24px 28px", fontSize: 15, color: "var(--label-secondary)" }}
           >
-            No interns yet. Add them from{" "}
+            {t("noInternsPrefix")}
             <Link href="/leader/allocation" style={{ color: "var(--tint)" }}>
-              People &amp; allocation
+              {t("peopleAllocation")}
             </Link>
-            .
+            {t("noInternsSuffix")}
           </div>
         ) : (
           <div className="ios-card overflow-hidden">
@@ -76,12 +78,12 @@ export default async function LeaderOverview() {
                 (t) => t.completed_by_intern && !t.approved_by_designer
               ).length;
               const person = userById.get(intern.user_id);
-              const name = person?.full_name ?? person?.email ?? "Intern";
+              const name = person?.full_name ?? person?.email ?? tRoles("intern");
               const designer = intern.allocated_designer_id
                 ? userById.get(intern.allocated_designer_id)
                 : null;
               const mentorName =
-                designer?.full_name ?? designer?.email ?? "Unassigned";
+                designer?.full_name ?? designer?.email ?? t("unassigned");
 
               return (
                 <div key={intern.id}>
@@ -90,7 +92,7 @@ export default async function LeaderOverview() {
                       style={{
                         height: 1,
                         background: "var(--separator)",
-                        marginLeft: 80,
+                        marginInlineStart: 80,
                       }}
                     />
                   )}
@@ -111,17 +113,17 @@ export default async function LeaderOverview() {
                           color: "var(--label-secondary)",
                         }}
                       >
-                        Mentor: {mentorName}
+                        {t("mentorLabel", { name: mentorName })}
                       </div>
                     </div>
                     {pending > 0 && (
-                      <StatusPill tone="red">{pending} to review</StatusPill>
+                      <StatusPill tone="red">{t("toReview", { count: pending })}</StatusPill>
                     )}
                     <div
-                      className="flex-shrink-0 text-right"
-                      style={{ fontSize: 15, color: "var(--label-secondary)", width: 110 }}
+                      className="flex-shrink-0"
+                      style={{ fontSize: 15, color: "var(--label-secondary)", width: 110, textAlign: "end" }}
                     >
-                      {approved}/{iTasks.length} tasks
+                      {t("tasksFraction", { approved, total: iTasks.length })}
                     </div>
                     <div style={{ width: 150, flexShrink: 0 }}>
                       <div className="ios-track" style={{ height: 5 }}>
@@ -135,13 +137,13 @@ export default async function LeaderOverview() {
                           marginTop: 5,
                           fontSize: 13,
                           color: "var(--label-secondary)",
-                          textAlign: "right",
+                          textAlign: "end",
                         }}
                       >
-                        {hours.worked} of {hours.target} h
+                        {t("hoursShort", { worked: hours.worked, target: hours.target })}
                       </div>
                     </div>
-                    <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0 }}>
+                    <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0, transform: "scaleX(var(--dir-flip, 1))" }}>
                       <path
                         d="M 1 1 L 7 7 L 1 13"
                         fill="none"
@@ -165,8 +167,7 @@ export default async function LeaderOverview() {
             color: "var(--label-secondary)",
           }}
         >
-          Hours count toward the 180-hour target. Vacation and sick days push the
-          projected end date instead of reducing the target.
+          {t("footnote")}
         </p>
       </div>
     </AppShell>

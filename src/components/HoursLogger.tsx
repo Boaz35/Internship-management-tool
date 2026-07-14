@@ -1,23 +1,20 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import type { HoursLogRow, HoursType } from "@/lib/database.types";
 import { logHours, deleteHoursLog } from "@/app/actions/intern";
 import { formatDate } from "@/lib/progress";
 
-const TYPES: { value: HoursType; label: string }[] = [
-  { value: "work", label: "Work" },
-  { value: "vacation", label: "Vacation" },
-  { value: "sick", label: "Sick" },
-];
-
-const TYPE_LABEL: Record<HoursType, string> = {
-  work: "Work",
-  vacation: "Vacation",
-  sick: "Sick",
-};
-
 export function HoursLogger({ logs }: { logs: HoursLogRow[] }) {
+  const t = useTranslations("hoursLogger");
+  const locale = useLocale();
+  const typeLabel: Record<HoursType, string> = {
+    work: t("work"),
+    vacation: t("vacation"),
+    sick: t("sick"),
+  };
+  const types: HoursType[] = ["work", "vacation", "sick"];
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [hours, setHours] = useState("9");
   const [type, setType] = useState<HoursType>("work");
@@ -29,14 +26,14 @@ export function HoursLogger({ logs }: { logs: HoursLogRow[] }) {
     setError(null);
     const h = parseFloat(hours);
     if (Number.isNaN(h) || h <= 0) {
-      setError("Enter a number of hours greater than 0.");
+      setError(t("enterHours"));
       return;
     }
     startTransition(async () => {
       try {
         await logHours({ date, hours: h, type });
       } catch (err: any) {
-        setError(err?.message ?? "Could not save.");
+        setError(err?.message ?? t("couldNotSave"));
       }
     });
   }
@@ -54,12 +51,12 @@ export function HoursLogger({ logs }: { logs: HoursLogRow[] }) {
   return (
     <div className="ios-card" style={{ padding: "18px 20px 20px" }}>
       <div style={{ fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>
-        Log time
+        {t("title")}
       </div>
 
       <form onSubmit={submit} className="mt-[14px] flex flex-wrap items-end gap-[10px]">
         <label className="block">
-          <span className="ios-field-label">Date</span>
+          <span className="ios-field-label">{t("date")}</span>
           <input
             type="date"
             value={date}
@@ -68,7 +65,7 @@ export function HoursLogger({ logs }: { logs: HoursLogRow[] }) {
           />
         </label>
         <label className="block">
-          <span className="ios-field-label">Hours</span>
+          <span className="ios-field-label">{t("hours")}</span>
           <input
             type="number"
             step="0.5"
@@ -80,15 +77,15 @@ export function HoursLogger({ logs }: { logs: HoursLogRow[] }) {
           />
         </label>
         <div>
-          <span className="ios-field-label">Type</span>
+          <span className="ios-field-label">{t("type")}</span>
           <Segmented
             value={type}
             onChange={setType}
-            options={TYPES.map((t) => ({ value: t.value, label: t.label }))}
+            options={types.map((v) => ({ value: v, label: typeLabel[v] }))}
           />
         </div>
         <button type="submit" disabled={pending} className="ios-btn">
-          Add
+          {t("add")}
         </button>
       </form>
       {error && (
@@ -99,27 +96,28 @@ export function HoursLogger({ logs }: { logs: HoursLogRow[] }) {
         className="mt-5 grid items-center"
         style={{ gridTemplateColumns: "1fr auto auto auto", columnGap: 20 }}
       >
-        <HeadCell>Date</HeadCell>
-        <HeadCell>Type</HeadCell>
-        <HeadCell align="right">Hours</HeadCell>
+        <HeadCell>{t("date")}</HeadCell>
+        <HeadCell>{t("type")}</HeadCell>
+        <HeadCell align="end">{t("hours")}</HeadCell>
         <div />
         {logs.map((log) => (
           <RowCells key={log.id}>
-            <Cell>{formatDate(log.date)}</Cell>
-            <Cell secondary>{TYPE_LABEL[log.type]}</Cell>
-            <Cell align="right">{log.hours}</Cell>
+            <Cell>{formatDate(log.date, locale)}</Cell>
+            <Cell secondary>{typeLabel[log.type]}</Cell>
+            <Cell align="end">{log.hours}</Cell>
             <button
               onClick={() => remove(log.id)}
               style={{
                 fontSize: 13,
                 color: "var(--terracotta)",
-                padding: "10px 0 10px 8px",
+                padding: "10px 0",
+                paddingInlineStart: 8,
                 borderTop: "1px solid var(--separator)",
                 cursor: "pointer",
-                textAlign: "left",
+                textAlign: "start",
               }}
             >
-              Remove
+              {t("remove")}
             </button>
           </RowCells>
         ))}
@@ -132,7 +130,7 @@ export function HoursLogger({ logs }: { logs: HoursLogRow[] }) {
               color: "var(--label-tertiary)",
             }}
           >
-            No time logged yet.
+            {t("noTime")}
           </div>
         )}
       </div>
@@ -191,7 +189,7 @@ function HeadCell({
   align,
 }: {
   children: React.ReactNode;
-  align?: "right";
+  align?: "start" | "end";
 }) {
   return (
     <div
@@ -220,7 +218,7 @@ function Cell({
 }: {
   children: React.ReactNode;
   secondary?: boolean;
-  align?: "right";
+  align?: "start" | "end";
 }) {
   return (
     <div

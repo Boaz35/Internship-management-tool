@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import type { InternRow, UserRole, UserRow } from "@/lib/database.types";
 import {
   setUserRole,
@@ -17,6 +18,7 @@ export function AllocationManager({
   users: UserRow[];
   interns: InternRow[];
 }) {
+  const t = useTranslations("allocation");
   const designers = users.filter((u) => u.role === "designer");
   const internUserIds = new Set(interns.map((i) => i.user_id));
   const eligibleForIntern = users.filter(
@@ -29,7 +31,7 @@ export function AllocationManager({
 
   return (
     <div className="flex flex-col gap-8">
-      <Section title="Roles" subtitle="Everyone signs in as an intern by default. Set the right role here.">
+      <Section title={t("roles")} subtitle={t("rolesSubtitle")}>
         <div>
           {users.map((u, i) => (
             <RoleRow key={u.id} user={u} first={i === 0} />
@@ -37,20 +39,20 @@ export function AllocationManager({
         </div>
       </Section>
 
-      <Section title="Add an intern">
+      <Section title={t("addIntern")}>
         {eligibleForIntern.length === 0 ? (
           <p style={{ fontSize: 15, color: "var(--label-secondary)" }}>
-            No eligible users. Set a user&apos;s role to “intern” above first.
+            {t("noEligible")}
           </p>
         ) : (
           <AddInternForm users={eligibleForIntern} designers={designers} />
         )}
       </Section>
 
-      <Section title="Allocation">
+      <Section title={t("allocation")}>
         {interns.length === 0 ? (
           <p style={{ fontSize: 15, color: "var(--label-secondary)" }}>
-            No interns yet.
+            {t("noInterns")}
           </p>
         ) : (
           <div>
@@ -95,6 +97,7 @@ function Section({
 }
 
 function RoleRow({ user, first }: { user: UserRow; first: boolean }) {
+  const t = useTranslations("allocation");
   const [role, setRole] = useState<UserRole>(user.role);
   const [pending, startTransition] = useTransition();
 
@@ -134,9 +137,9 @@ function RoleRow({ user, first }: { user: UserRow; first: boolean }) {
         onChange={(e) => change(e.target.value as UserRole)}
         className="ios-input"
       >
-        <option value="intern">Intern</option>
-        <option value="designer">Designer / Mentor</option>
-        <option value="team_leader">Team Leader</option>
+        <option value="intern">{t("roleIntern")}</option>
+        <option value="designer">{t("roleDesigner")}</option>
+        <option value="team_leader">{t("roleLeader")}</option>
       </select>
     </div>
   );
@@ -149,6 +152,7 @@ function AddInternForm({
   users: UserRow[];
   designers: UserRow[];
 }) {
+  const t = useTranslations("allocation");
   const [userId, setUserId] = useState(users[0]?.id ?? "");
   const [startDate, setStartDate] = useState(() =>
     new Date().toISOString().slice(0, 10)
@@ -170,7 +174,7 @@ function AddInternForm({
           targetHours: parseInt(targetHours, 10) || 180,
         });
       } catch (err: any) {
-        setError(err?.message ?? "Could not create intern.");
+        setError(err?.message ?? t("couldNotCreate"));
       }
     });
   }
@@ -178,7 +182,7 @@ function AddInternForm({
   return (
     <form onSubmit={submit} className="flex flex-wrap items-end gap-[10px]">
       <label className="block">
-        <span className="ios-field-label">Person</span>
+        <span className="ios-field-label">{t("person")}</span>
         <select
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
@@ -192,7 +196,7 @@ function AddInternForm({
         </select>
       </label>
       <label className="block">
-        <span className="ios-field-label">Start date</span>
+        <span className="ios-field-label">{t("startDate")}</span>
         <input
           type="date"
           value={startDate}
@@ -201,7 +205,7 @@ function AddInternForm({
         />
       </label>
       <label className="block">
-        <span className="ios-field-label">Target hours</span>
+        <span className="ios-field-label">{t("targetHours")}</span>
         <input
           type="number"
           value={targetHours}
@@ -211,13 +215,13 @@ function AddInternForm({
         />
       </label>
       <label className="block">
-        <span className="ios-field-label">Mentor</span>
+        <span className="ios-field-label">{t("mentor")}</span>
         <select
           value={designerId}
           onChange={(e) => setDesignerId(e.target.value)}
           className="ios-input"
         >
-          <option value="">Unassigned</option>
+          <option value="">{t("unassigned")}</option>
           {designers.map((d) => (
             <option key={d.id} value={d.id}>
               {d.full_name ?? d.email}
@@ -226,7 +230,7 @@ function AddInternForm({
         </select>
       </label>
       <button type="submit" disabled={pending} className="ios-btn">
-        Create intern
+        {t("createIntern")}
       </button>
       {error && (
         <p style={{ width: "100%", fontSize: 13, color: "var(--terracotta)" }}>{error}</p>
@@ -246,6 +250,7 @@ function AllocationRow({
   designers: UserRow[];
   first: boolean;
 }) {
+  const t = useTranslations("allocation");
   const [designerId, setDesignerId] = useState(intern.allocated_designer_id ?? "");
   const [startDate, setStartDate] = useState(intern.start_date);
   const [endDate, setEndDate] = useState(intern.end_date ?? "");
@@ -287,7 +292,7 @@ function AllocationRow({
       <div style={{ fontSize: 15, fontWeight: 510 }}>{internName}</div>
       <div className="flex flex-wrap items-end gap-3">
         <label className="block">
-          <span className="ios-field-label">Start</span>
+          <span className="ios-field-label">{t("start")}</span>
           <input
             type="date"
             value={startDate}
@@ -297,7 +302,7 @@ function AllocationRow({
           />
         </label>
         <label className="block">
-          <span className="ios-field-label">End</span>
+          <span className="ios-field-label">{t("end")}</span>
           <input
             type="date"
             value={endDate}
@@ -307,14 +312,14 @@ function AllocationRow({
           />
         </label>
         <label className="block">
-          <span className="ios-field-label">Mentor</span>
+          <span className="ios-field-label">{t("mentor")}</span>
           <select
             value={designerId}
             disabled={pending}
             onChange={(e) => changeDesigner(e.target.value)}
             className="ios-input"
           >
-            <option value="">Unassigned</option>
+            <option value="">{t("unassigned")}</option>
             {designers.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.full_name ?? d.email}

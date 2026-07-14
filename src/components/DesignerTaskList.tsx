@@ -1,25 +1,44 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { MilestoneRow, TaskRow } from "@/lib/database.types";
+import { useTranslations } from "next-intl";
+import type {
+  FeedbackCategoryRow,
+  MilestoneRow,
+  TaskRow,
+} from "@/lib/database.types";
 import {
   setTaskApproved,
   addCustomTask,
   deleteTask,
 } from "@/app/actions/designer";
 import { StatusPill } from "@/components/ui";
+import { TaskFeedbackModal } from "@/components/TaskFeedbackModal";
+
+type ActiveTask = {
+  taskId: string;
+  taskName: string;
+  milestoneName: string;
+};
 
 export function DesignerTaskList({
   internId,
   milestones,
   tasks,
   readOnly = false,
+  categories = [],
+  feedbackCountByTask = {},
 }: {
   internId: string;
   milestones: MilestoneRow[];
   tasks: TaskRow[];
   readOnly?: boolean;
+  categories?: FeedbackCategoryRow[];
+  feedbackCountByTask?: Record<string, number>;
 }) {
+  const t = useTranslations("tasks");
+  const [active, setActive] = useState<ActiveTask | null>(null);
+
   return (
     <div className="flex flex-col gap-4">
       {milestones.map((m) => {
@@ -39,7 +58,7 @@ export function DesignerTaskList({
                 {m.name}
               </div>
               <div style={{ fontSize: 13, color: "var(--label-secondary)" }}>
-                {approved} of {group.length} approved
+                {t("approvedOf", { approved, total: group.length })}
               </div>
             </div>
 
@@ -49,6 +68,14 @@ export function DesignerTaskList({
                 task={task}
                 internId={internId}
                 readOnly={readOnly}
+                feedbackCount={feedbackCountByTask[task.id] ?? 0}
+                onFeedback={() =>
+                  setActive({
+                    taskId: task.id,
+                    taskName: task.name,
+                    milestoneName: m.name,
+                  })
+                }
               />
             ))}
             {group.length === 0 && (
@@ -62,7 +89,7 @@ export function DesignerTaskList({
                   color: "var(--label-tertiary)",
                 }}
               >
-                No tasks.
+                {t("noTasks")}
               </div>
             )}
 
@@ -72,6 +99,17 @@ export function DesignerTaskList({
           </section>
         );
       })}
+
+      {active && (
+        <TaskFeedbackModal
+          internId={internId}
+          taskId={active.taskId}
+          taskName={active.taskName}
+          milestoneName={active.milestoneName}
+          categories={categories}
+          onClose={() => setActive(null)}
+        />
+      )}
     </div>
   );
 }
@@ -80,11 +118,16 @@ function DesignerTaskRow({
   task,
   internId,
   readOnly,
+  feedbackCount,
+  onFeedback,
 }: {
   task: TaskRow;
   internId: string;
   readOnly: boolean;
+  feedbackCount: number;
+  onFeedback: () => void;
 }) {
+  const t = useTranslations("tasks");
   const [approved, setApproved] = useState(task.approved_by_designer);
   const [pending, startTransition] = useTransition();
   const completed = task.completed_by_intern;
@@ -118,14 +161,46 @@ function DesignerTaskRow({
         {task.name}
       </div>
 
-      {task.source === "custom" && <StatusPill tone="orange">custom</StatusPill>}
+      {feedbackCount > 0 && (
+        <span
+          title={t("hasFeedback", { count: feedbackCount })}
+          className="ios-pill"
+          style={{
+            color: "var(--rating-good)",
+            background: "var(--rating-good-bg)",
+            fontWeight: 500,
+          }}
+        >
+          {t("feedback")} · {feedbackCount}
+        </span>
+      )}
+
+      {task.source === "custom" && <StatusPill tone="orange">{t("custom")}</StatusPill>}
 
       {approved ? (
-        <StatusPill tone="green">Approved</StatusPill>
+        <StatusPill tone="green">{t("approved")}</StatusPill>
       ) : completed ? (
-        <StatusPill tone="tint">Ready to review</StatusPill>
+        <StatusPill tone="tint">{t("readyToReview")}</StatusPill>
       ) : (
-        <StatusPill tone="neutral">Not started</StatusPill>
+        <StatusPill tone="neutral">{t("notStarted")}</StatusPill>
+      )}
+
+      {!readOnly && (
+        <button
+          onClick={onFeedback}
+          style={{
+            fontSize: 13,
+            fontWeight: 590,
+            borderRadius: 100,
+            padding: "5px 14px",
+            flexShrink: 0,
+            cursor: "pointer",
+            color: "#000",
+            background: "var(--fill-tertiary)",
+          }}
+        >
+          {t("feedback")}
+        </button>
       )}
 
       {!readOnly && (
@@ -145,7 +220,7 @@ function DesignerTaskRow({
             opacity: canApprove ? 1 : 0.35,
           }}
         >
-          {approved ? "Undo" : "Approve"}
+          {approved ? t("undo") : t("approve")}
         </button>
       )}
 
@@ -163,6 +238,7 @@ function DeleteTaskButton({
   taskId: string;
   internId: string;
 }) {
+  const t = useTranslations("tasks");
   const [pending, startTransition] = useTransition();
   return (
     <button
@@ -177,7 +253,7 @@ function DeleteTaskButton({
         })
       }
       style={{ fontSize: 13, color: "var(--label-tertiary)", cursor: "pointer" }}
-      title="Delete task"
+      title={t("deleteTask")}
     >
       ✕
     </button>
@@ -191,6 +267,8 @@ function AddCustomTask({
   internId: string;
   milestoneId: string;
 }) {
+  const t = useTranslations("tasks");
+  const tc = useTranslations("common");
   const [name, setName] = useState("");
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -219,14 +297,14 @@ function AddCustomTask({
           paddingTop: 10,
           borderTop: "1px solid var(--separator)",
           width: "100%",
-          textAlign: "left",
+          textAlign: "start",
           fontSize: 13,
           fontWeight: 590,
           color: "var(--tint)",
           cursor: "pointer",
         }}
       >
-        + Add task
+        {t("addTask")}
       </button>
     );
   }
@@ -241,14 +319,14 @@ function AddCustomTask({
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="Task name"
+        placeholder={t("taskName")}
         className="ios-input flex-1"
       />
       <button type="submit" disabled={pending} className="ios-btn">
-        Add
+        {tc("add")}
       </button>
       <button type="button" onClick={() => setOpen(false)} className="ios-btn-ghost">
-        Cancel
+        {tc("cancel")}
       </button>
     </form>
   );

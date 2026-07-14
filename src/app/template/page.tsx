@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { requireAnyRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function TemplatePage() {
   const user = await requireAnyRole(["team_leader", "designer"]);
+  const t = await getTranslations("template");
   const supabase = createClient();
 
   const [{ data: milestones }, { data: templates }] = await Promise.all([
@@ -18,11 +20,8 @@ export default async function TemplatePage() {
   return (
     <AppShell name={user.full_name} email={user.email} role={user.role}>
       <div className="ios-page">
-        <h1 className="ios-h1">Program template</h1>
-        <p className="ios-subtitle">
-          The shared phases and default tasks every intern receives. Edits apply
-          across the program.
-        </p>
+        <h1 className="ios-h1">{t("title")}</h1>
+        <p className="ios-subtitle">{t("subtitle")}</p>
         <div className="mt-8">
           <TemplateEditor
             milestones={(milestones as MilestoneRow[]) ?? []}

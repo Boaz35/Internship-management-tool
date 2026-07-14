@@ -64,27 +64,5 @@ export async function deleteTask(taskId: string, internId: string) {
   revalidatePath(`/designer/intern/${internId}`);
 }
 
-// Private notes.
-export async function addNote(internId: string, content: string) {
-  const user = await assertCanMentor(internId);
-  if (!content.trim()) return;
-  const supabase = createClient();
-  const { error } = await supabase.from("notes").insert({
-    intern_id: internId,
-    author_id: user.id,
-    author_name: user.full_name ?? user.email,
-    content: content.trim(),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath(`/designer/intern/${internId}`);
-  revalidatePath(`/leader/intern/${internId}`);
-}
-
-export async function deleteNote(noteId: string, internId: string) {
-  await assertCanMentor(internId);
-  const supabase = createClient();
-  const { error } = await supabase.from("notes").delete().eq("id", noteId);
-  if (error) throw new Error(error.message);
-  revalidatePath(`/designer/intern/${internId}`);
-  revalidatePath(`/leader/intern/${internId}`);
-}
+// NOTE: the free-form private notes feature was replaced by structured mentor
+// feedback in v2. See src/app/actions/feedback.ts.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import type { MilestoneRow, TaskRow } from "@/lib/database.types";
 import { setTaskCompleted } from "@/app/actions/intern";
 import { StatusPill } from "@/components/ui";
@@ -12,6 +13,7 @@ export function InternTaskList({
   milestones: MilestoneRow[];
   tasks: TaskRow[];
 }) {
+  const t = useTranslations("internTasks");
   return (
     <div className="flex flex-col gap-4">
       {milestones.map((m) => {
@@ -31,7 +33,7 @@ export function InternTaskList({
                 {m.name}
               </div>
               <div style={{ fontSize: 13, color: "var(--label-secondary)" }}>
-                {approved} of {group.length} approved
+                {t("approvedOf", { approved, total: group.length })}
               </div>
             </div>
             {group.map((task) => (
@@ -48,7 +50,7 @@ export function InternTaskList({
                   color: "var(--label-tertiary)",
                 }}
               >
-                No tasks yet.
+                {t("noTasks")}
               </div>
             )}
           </section>
@@ -59,6 +61,7 @@ export function InternTaskList({
 }
 
 function TaskRowItem({ task }: { task: TaskRow }) {
+  const t = useTranslations("internTasks");
   const [completed, setCompleted] = useState(task.completed_by_intern);
   const [pending, startTransition] = useTransition();
   const approved = task.approved_by_designer;
@@ -93,7 +96,7 @@ function TaskRowItem({ task }: { task: TaskRow }) {
       <button
         onClick={toggle}
         disabled={approved || pending}
-        aria-label={checked ? "Completed" : "Mark done"}
+        aria-label={checked ? t("completed") : t("markDone")}
         className="flex items-center justify-center"
         style={{
           width: 22,
@@ -131,12 +134,12 @@ function TaskRowItem({ task }: { task: TaskRow }) {
         {task.name}
       </div>
 
-      {task.source === "custom" && <StatusPill tone="orange">mentor</StatusPill>}
+      {task.source === "custom" && <StatusPill tone="orange">{t("mentor")}</StatusPill>}
 
       {approved ? (
-        <StatusPill tone="green">Approved</StatusPill>
+        <StatusPill tone="green">{t("approved")}</StatusPill>
       ) : completed ? (
-        <StatusPill tone="tint">Awaiting approval</StatusPill>
+        <StatusPill tone="tint">{t("awaitingApproval")}</StatusPill>
       ) : null}
     </div>
   );

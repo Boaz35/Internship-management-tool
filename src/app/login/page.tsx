@@ -1,13 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
-
-const ERROR_MESSAGES: Record<string, string> = {
-  domain: "That account isn't part of the allowed workspace domain.",
-  auth_failed: "Sign-in failed. Please try again.",
-  missing_code: "Sign-in was interrupted. Please try again.",
-};
+import { LanguageToggle } from "@/components/LanguageToggle";
 
 export default function LoginPage({
   searchParams,
@@ -15,8 +11,14 @@ export default function LoginPage({
   searchParams: { error?: string };
 }) {
   const [loading, setLoading] = useState(false);
+  const t = useTranslations("login");
+  const errorKey: Record<string, string> = {
+    domain: "errorDomain",
+    auth_failed: "errorAuthFailed",
+    missing_code: "errorMissingCode",
+  };
   const errorMessage = searchParams.error
-    ? ERROR_MESSAGES[searchParams.error] ?? "Something went wrong."
+    ? t(errorKey[searchParams.error] ?? "errorGeneric")
     : null;
 
   async function signIn() {
@@ -40,6 +42,9 @@ export default function LoginPage({
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
+      <div style={{ position: "fixed", top: 16, right: 20, zIndex: 50 }}>
+        <LanguageToggle />
+      </div>
       <div
         style={{
           width: 380,
@@ -68,10 +73,10 @@ export default function LoginPage({
         </div>
 
         <h1 style={{ margin: "20px 0 0", fontSize: 24, fontWeight: 500, letterSpacing: "-0.45px" }}>
-          Internship Program
+          {t("title")}
         </h1>
         <p style={{ margin: "8px 0 0", fontSize: 15, color: "var(--label-secondary)", lineHeight: "20px" }}>
-          Sign in with your work Google account to continue.
+          {t("subtitle")}
         </p>
 
         {errorMessage && (
@@ -108,11 +113,11 @@ export default function LoginPage({
           }}
         >
           <GoogleIcon />
-          {loading ? "Redirecting…" : "Continue with Google"}
+          {loading ? t("redirecting") : t("continueWithGoogle")}
         </button>
 
         <p style={{ margin: "16px 0 0", fontSize: 13, color: "var(--label-tertiary)" }}>
-          Restricted to the {domain ?? "your organization"} workspace
+          {domain ? t("restricted", { domain }) : t("restrictedGeneric")}
         </p>
       </div>
     </main>
