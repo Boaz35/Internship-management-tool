@@ -64,7 +64,12 @@ export async function InternDetail({
     { data: entries },
   ] = await Promise.all([
     supabase.from("users").select("*").eq("id", intern.user_id).single<UserRow>(),
-    supabase.from("milestones").select("*").order("sequence"),
+    // Global phases (intern_id null) + phases scoped to this intern.
+    supabase
+      .from("milestones")
+      .select("*")
+      .or(`intern_id.is.null,intern_id.eq.${internId}`)
+      .order("sequence"),
     supabase.from("tasks").select("*").eq("intern_id", internId),
     supabase
       .from("hours_logs")

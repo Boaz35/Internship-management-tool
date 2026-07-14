@@ -19,14 +19,18 @@ import {
   deleteTaskLink,
 } from "@/app/actions/leader";
 
+export type InternOption = { id: string; name: string };
+
 export function TemplateEditor({
   milestones,
   templates,
   links = [],
+  interns = [],
 }: {
   milestones: MilestoneRow[];
   templates: TaskTemplateRow[];
   links?: TaskTemplateLinkRow[];
+  interns?: InternOption[];
 }) {
   const t = useTranslations("template");
 
@@ -36,12 +40,26 @@ export function TemplateEditor({
     return map;
   }, [links]);
 
+  // Global phases form the shared template; per-intern phases are listed apart.
+  const globalMilestones = useMemo(
+    () => milestones.filter((m) => !m.intern_id),
+    [milestones]
+  );
+  const internMilestones = useMemo(
+    () => milestones.filter((m) => m.intern_id),
+    [milestones]
+  );
+  const internNameById = useMemo(
+    () => new Map(interns.map((i) => [i.id, i.name])),
+    [interns]
+  );
+
   return (
     <div className="flex flex-col gap-5">
       <p style={{ fontSize: 15, color: "var(--label-secondary)", maxWidth: 620 }}>
         {t("intro")}
       </p>
-      {milestones.map((m, i) => (
+      {globalMilestones.map((m, i) => (
         <MilestoneBlock
           key={m.id}
           milestone={m}
@@ -52,7 +70,97 @@ export function TemplateEditor({
           linksByTask={linksByTask}
         />
       ))}
-      <AddPhaseForm />
+      <AddPhaseForm interns={interns} />
+
+      {internMilestones.length > 0 && (
+        <InternPhasesSection
+          milestones={internMilestones}
+          internNameById={internNameById}
+        />
+      )}
+    </div>
+  );
+}
+
+// Read-only list of phases that belong to a single intern. Tasks are added to
+// these from the intern's own Tasks tab; here they can only be removed.
+function InternPhasesSection({
+  milestones,
+  internNameById,
+}: {
+  milestones: MilestoneRow[];
+  internNameById: Map<string, string>;
+}) {
+  const t = useTranslations("template");
+  return (
+    <div className="mt-2">
+      <div className="ios-section-label" style={{ padding: "0 4px" }}>
+        {t("internPhasesTitle")}
+      </div>
+      <p style={{ fontSize: 13, color: "var(--label-tertiary)", padding: "2px 4px 10px" }}>
+        {t("internPhasesHint")}
+      </p>
+      <div className="flex flex-col gap-2">
+        {milestones.map((m) => (
+          <InternPhaseRow
+            key={m.id}
+            milestone={m}
+            internName={
+              (m.intern_id && internNameById.get(m.intern_id)) || t("unknownIntern")
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function InternPhaseRow({
+  milestone,
+  internName,
+}: {
+  milestone: MilestoneRow;
+  internName: string;
+}) {
+  const t = useTranslations("template");
+  const [pending, startTransition] = useTransition();
+
+  function removePhase() {
+    if (!window.confirm(t("confirmDeletePhase", { name: milestone.name }))) return;
+    startTransition(async () => {
+      try {
+        await deleteMilestone(milestone.id);
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+
+  return (
+    <div
+      className="ios-card flex items-center gap-3"
+      style={{ padding: "12px 16px" }}
+    >
+      <div className="min-w-0 flex-1">
+        <div style={{ fontSize: 15, fontWeight: 500 }}>{milestone.name}</div>
+        <div style={{ fontSize: 13, color: "var(--label-secondary)" }}>
+          {t("forIntern", { name: internName })}
+        </div>
+      </div>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={removePhase}
+        title={t("deletePhase")}
+        style={{
+          fontSize: 13,
+          color: "var(--terracotta)",
+          cursor: "pointer",
+          flexShrink: 0,
+        }}
+      >
+        {t("delete")}
+      </button>
     </div>
   );
 }
@@ -523,10 +631,11 @@ function TaskLinks({
   );
 }
 
-function AddPhaseForm() {
+function AddPhaseForm({ interns }: { interns: InternOption[] }) {
   const t = useTranslations("template");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [internId, setInternId] = useState<string>(""); // "" = all interns (global)
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -535,11 +644,13 @@ function AddPhaseForm() {
     if (!name.trim()) return;
     const n = name;
     const d = description;
+    const target = internId || null;
     startTransition(async () => {
       try {
-        await addMilestone({ name: n, description: d });
+        await addMilestone({ name: n, description: d, internId: target });
         setName("");
         setDescription("");
+        setInternId("");
         setOpen(false);
       } catch {
         /* keep values */
@@ -587,6 +698,27 @@ function AddPhaseForm() {
         className="ios-textarea"
         style={{ marginTop: 10, fontSize: 13, color: "var(--label-secondary)" }}
       />
+      <div style={{ marginTop: 10 }}>
+        <label className="ios-field-label">{t("assignPhase")}</label>
+        <select
+          value={internId}
+          onChange={(e) => setInternId(e.target.value)}
+          className="ios-input"
+          style={{ width: "100%" }}
+        >
+          <option value="">{t("allInternsGlobal")}</option>
+          {interns.map((i) => (
+            <option key={i.id} value={i.id}>
+              {i.name}
+            </option>
+          ))}
+        </select>
+        {internId && (
+          <p style={{ marginTop: 6, fontSize: 12, color: "var(--label-tertiary)" }}>
+            {t("internPhaseNote")}
+          </p>
+        )}
+      </div>
       <div className="mt-3 flex gap-2">
         <button type="submit" disabled={pending} className="ios-btn">
           {t("addPhaseBtn")}

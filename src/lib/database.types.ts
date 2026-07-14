@@ -22,6 +22,8 @@ export interface MilestoneRow {
   name: string;
   sequence: number;
   description: string | null;
+  // null = global/template phase (all interns); set = phase for one intern.
+  intern_id: string | null;
 }
 
 export interface TaskTemplateRow {

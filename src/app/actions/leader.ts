@@ -270,10 +270,14 @@ export async function updateMilestone(input: {
   revalidateTemplate();
 }
 
-// Add a new phase (milestone) to the program, appended after the last one.
+// Add a new phase (milestone), appended after the last one. When `internId`
+// is given the phase is scoped to that intern only; otherwise it is a global
+// template phase shared by every intern. A per-intern phase is created empty —
+// the mentor adds tasks to it afterward from the intern's Tasks tab.
 export async function addMilestone(input: {
   name: string;
   description?: string;
+  internId?: string | null;
 }) {
   await requireAnyRole(TEMPLATE_EDITORS);
   if (!input.name.trim()) return;
@@ -289,9 +293,14 @@ export async function addMilestone(input: {
     name: input.name.trim(),
     description: input.description?.trim() ?? "",
     sequence: nextSeq,
+    intern_id: input.internId ?? null,
   });
   if (error) throw new Error(error.message);
   revalidateTemplate();
+  if (input.internId) {
+    revalidatePath(`/designer/intern/${input.internId}`);
+    revalidatePath(`/leader/intern/${input.internId}`);
+  }
 }
 
 // Delete a whole phase. Cascades to its template tasks and to every intern's
@@ -299,7 +308,16 @@ export async function addMilestone(input: {
 export async function deleteMilestone(id: string) {
   await requireAnyRole(TEMPLATE_EDITORS);
   const supabase = createClient();
+  const { data: milestone } = await supabase
+    .from("milestones")
+    .select("intern_id")
+    .eq("id", id)
+    .single();
   const { error } = await supabase.from("milestones").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidateTemplate();
+  if (milestone?.intern_id) {
+    revalidatePath(`/designer/intern/${milestone.intern_id}`);
+    revalidatePath(`/leader/intern/${milestone.intern_id}`);
+  }
 }
