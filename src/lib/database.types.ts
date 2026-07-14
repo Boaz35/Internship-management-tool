@@ -31,6 +31,16 @@ export interface TaskTemplateRow {
   sequence: number;
 }
 
+export interface TaskTemplateLinkRow {
+  id: string;
+  template_id: string;
+  name: string;
+  url: string;
+  sequence: number;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface InternRow {
   id: string;
   user_id: string;
@@ -128,6 +138,7 @@ export interface Database {
       users: Table<UserRow>;
       milestones: Table<MilestoneRow>;
       task_templates: Table<TaskTemplateRow>;
+      task_template_links: Table<TaskTemplateLinkRow>;
       interns: Table<InternRow>;
       tasks: Table<TaskRow>;
       hours_logs: Table<HoursLogRow>;

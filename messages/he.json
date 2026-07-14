@@ -240,6 +240,12 @@
     "descriptionOptional": "תיאור (רשות)",
     "addPhaseBtn": "הוספת שלב",
     "cancel": "ביטול",
-    "confirmDeletePhase": "למחוק את השלב \"{name}\"? פעולה זו מסירה אותו ואת המשימות שלו לכל מתמחה."
+    "confirmDeletePhase": "למחוק את השלב \"{name}\"? פעולה זו מסירה אותו ואת המשימות שלו לכל מתמחה.",
+    "moveUp": "העברה למעלה",
+    "moveDown": "העברה למטה",
+    "addLink": "+ הוספת קישור",
+    "linkName": "תווית",
+    "linkUrl": "https://…",
+    "removeLink": "הסרת קישור"
   }
 }

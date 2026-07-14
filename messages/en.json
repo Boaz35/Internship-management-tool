@@ -240,6 +240,12 @@
     "descriptionOptional": "Description (optional)",
     "addPhaseBtn": "Add phase",
     "cancel": "Cancel",
-    "confirmDeletePhase": "Delete the \"{name}\" phase? This removes it and its tasks for every intern."
+    "confirmDeletePhase": "Delete the \"{name}\" phase? This removes it and its tasks for every intern.",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "addLink": "+ Add link",
+    "linkName": "Label",
+    "linkUrl": "https://…",
+    "removeLink": "Remove link"
   }
 }

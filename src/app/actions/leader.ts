@@ -174,6 +174,85 @@ export async function deleteTemplateTask(id: string) {
   revalidateTemplate();
 }
 
+// Reorder tasks within a phase: reassign sequence = position for the given
+// ordered list of template-task ids.
+export async function reorderTemplateTasks(orderedIds: string[]) {
+  await requireAnyRole(TEMPLATE_EDITORS);
+  if (orderedIds.length === 0) return;
+  const supabase = createClient();
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from("task_templates").update({ sequence: index + 1 }).eq("id", id)
+    )
+  );
+  revalidateTemplate();
+}
+
+// --- Template task links (named URLs / resources) ---------------------------
+
+export async function addTaskLink(input: {
+  templateId: string;
+  name: string;
+  url: string;
+}) {
+  const user = await requireAnyRole(TEMPLATE_EDITORS);
+  const name = input.name.trim();
+  let url = input.url.trim();
+  if (!name || !url) throw new Error("A label and URL are both required.");
+  // Be forgiving about the scheme so a pasted "example.com" still works.
+  if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+
+  const supabase = createClient();
+  const { data: existing } = await supabase
+    .from("task_template_links")
+    .select("sequence")
+    .eq("template_id", input.templateId)
+    .order("sequence", { ascending: false })
+    .limit(1);
+  const nextSeq = (existing?.[0]?.sequence ?? 0) + 1;
+
+  const { error } = await supabase.from("task_template_links").insert({
+    template_id: input.templateId,
+    name,
+    url,
+    sequence: nextSeq,
+    created_by: user.id,
+  });
+  if (error) throw new Error(error.message);
+  revalidateTemplate();
+}
+
+export async function updateTaskLink(input: {
+  id: string;
+  name: string;
+  url: string;
+}) {
+  await requireAnyRole(TEMPLATE_EDITORS);
+  const name = input.name.trim();
+  let url = input.url.trim();
+  if (!name || !url) throw new Error("A label and URL are both required.");
+  if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("task_template_links")
+    .update({ name, url })
+    .eq("id", input.id);
+  if (error) throw new Error(error.message);
+  revalidateTemplate();
+}
+
+export async function deleteTaskLink(id: string) {
+  await requireAnyRole(TEMPLATE_EDITORS);
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("task_template_links")
+    .delete()
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidateTemplate();
+}
+
 export async function updateMilestone(input: {
   id: string;
   name: string;

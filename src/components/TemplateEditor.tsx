@@ -1,25 +1,41 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import type { MilestoneRow, TaskTemplateRow } from "@/lib/database.types";
+import type {
+  MilestoneRow,
+  TaskTemplateLinkRow,
+  TaskTemplateRow,
+} from "@/lib/database.types";
 import {
   addTemplateTask,
   renameTemplateTask,
   deleteTemplateTask,
+  reorderTemplateTasks,
   updateMilestone,
   addMilestone,
   deleteMilestone,
+  addTaskLink,
+  deleteTaskLink,
 } from "@/app/actions/leader";
 
 export function TemplateEditor({
   milestones,
   templates,
+  links = [],
 }: {
   milestones: MilestoneRow[];
   templates: TaskTemplateRow[];
+  links?: TaskTemplateLinkRow[];
 }) {
   const t = useTranslations("template");
+
+  const linksByTask = useMemo(() => {
+    const map: Record<string, TaskTemplateLinkRow[]> = {};
+    for (const l of links) (map[l.template_id] ??= []).push(l);
+    return map;
+  }, [links]);
+
   return (
     <div className="flex flex-col gap-5">
       <p style={{ fontSize: 15, color: "var(--label-secondary)", maxWidth: 620 }}>
@@ -30,7 +46,10 @@ export function TemplateEditor({
           key={m.id}
           milestone={m}
           index={i}
-          tasks={templates.filter((t) => t.milestone_id === m.id)}
+          tasks={templates
+            .filter((t) => t.milestone_id === m.id)
+            .sort((a, b) => a.sequence - b.sequence)}
+          linksByTask={linksByTask}
         />
       ))}
       <AddPhaseForm />
@@ -42,10 +61,12 @@ function MilestoneBlock({
   milestone,
   index,
   tasks,
+  linksByTask,
 }: {
   milestone: MilestoneRow;
   index: number;
   tasks: TaskTemplateRow[];
+  linksByTask: Record<string, TaskTemplateLinkRow[]>;
 }) {
   const t = useTranslations("template");
   const [name, setName] = useState(milestone.name);
@@ -90,8 +111,51 @@ function MilestoneBlock({
     });
   }
 
+  function move(taskIndex: number, dir: -1 | 1) {
+    const target = taskIndex + dir;
+    if (target < 0 || target >= tasks.length) return;
+    const ordered = tasks.map((t) => t.id);
+    [ordered[taskIndex], ordered[target]] = [ordered[target], ordered[taskIndex]];
+    startTransition(async () => {
+      try {
+        await reorderTemplateTasks(ordered);
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+
   return (
-    <section className="ios-card" style={{ padding: "20px 24px 16px" }}>
+    <section
+      className="ios-card"
+      style={{ padding: "20px 24px 16px", position: "relative" }}
+    >
+      {/* Delete phase — pinned to the top-right corner of the card. */}
+      <button
+        type="button"
+        disabled={pending}
+        onClick={removePhase}
+        title={t("deletePhase")}
+        aria-label={t("deletePhase")}
+        className="flex items-center justify-center"
+        style={{
+          position: "absolute",
+          top: 14,
+          insetInlineEnd: 14,
+          zIndex: 2,
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          background: "var(--surface)",
+          boxShadow: "var(--ring)",
+          color: "var(--terracotta)",
+          fontSize: 14,
+          cursor: "pointer",
+        }}
+      >
+        ✕
+      </button>
+
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1" style={{ paddingTop: 22 }}>
           <input
@@ -122,6 +186,7 @@ function MilestoneBlock({
             userSelect: "none",
             flexShrink: 0,
             marginInlineStart: 16,
+            paddingTop: 18,
           }}
         >
           {num}
@@ -138,19 +203,17 @@ function MilestoneBlock({
         style={{ marginTop: 4, fontSize: 13, color: "var(--label-secondary)" }}
       />
 
-      <div className="mt-3 flex items-center justify-end">
-        <button
-          disabled={pending}
-          onClick={removePhase}
-          style={{ fontSize: 13, color: "var(--terracotta)", cursor: "pointer" }}
-        >
-          {t("deletePhase")}
-        </button>
-      </div>
-
-      <div className="mt-1">
-        {tasks.map((t) => (
-          <TemplateTaskRow key={t.id} task={t} />
+      <div className="mt-3">
+        {tasks.map((task, i) => (
+          <TemplateTaskRow
+            key={task.id}
+            task={task}
+            links={linksByTask[task.id] ?? []}
+            isFirst={i === 0}
+            isLast={i === tasks.length - 1}
+            onMoveUp={() => move(i, -1)}
+            onMoveDown={() => move(i, 1)}
+          />
         ))}
         {tasks.length === 0 && (
           <div
@@ -187,63 +250,251 @@ function MilestoneBlock({
   );
 }
 
-function TemplateTaskRow({ task }: { task: TaskTemplateRow }) {
+function TemplateTaskRow({
+  task,
+  links,
+  isFirst,
+  isLast,
+  onMoveUp,
+  onMoveDown,
+}: {
+  task: TaskTemplateRow;
+  links: TaskTemplateLinkRow[];
+  isFirst: boolean;
+  isLast: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
   const t = useTranslations("template");
   const [name, setName] = useState(task.name);
   const [pending, startTransition] = useTransition();
 
   return (
-    <div
-      className="flex items-center gap-3"
-      style={{ minHeight: 44, borderTop: "1px solid var(--separator)" }}
-    >
-      <svg width="12" height="12" viewBox="0 0 12 12" style={{ flexShrink: 0 }}>
-        <circle cx="3" cy="2.5" r="1.2" fill="var(--label-tertiary)" />
-        <circle cx="9" cy="2.5" r="1.2" fill="var(--label-tertiary)" />
-        <circle cx="3" cy="6" r="1.2" fill="var(--label-tertiary)" />
-        <circle cx="9" cy="6" r="1.2" fill="var(--label-tertiary)" />
-        <circle cx="3" cy="9.5" r="1.2" fill="var(--label-tertiary)" />
-        <circle cx="9" cy="9.5" r="1.2" fill="var(--label-tertiary)" />
-      </svg>
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onBlur={() => {
-          if (name.trim() && name !== task.name) {
+    <div style={{ borderTop: "1px solid var(--separator)", padding: "6px 0" }}>
+      <div className="flex items-center gap-3" style={{ minHeight: 38 }}>
+        <div className="flex flex-col" style={{ gap: 1, flexShrink: 0 }}>
+          <ReorderButton dir="up" disabled={isFirst} onClick={onMoveUp} label={t("moveUp")} />
+          <ReorderButton dir="down" disabled={isLast} onClick={onMoveDown} label={t("moveDown")} />
+        </div>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => {
+            if (name.trim() && name !== task.name) {
+              startTransition(async () => {
+                try {
+                  await renameTemplateTask(task.id, name);
+                } catch {
+                  setName(task.name);
+                }
+              });
+            }
+          }}
+          style={{
+            flex: 1,
+            border: "none",
+            outline: "none",
+            background: "transparent",
+            fontSize: 15,
+            color: "var(--label)",
+            padding: "2px 0",
+          }}
+        />
+        <button
+          disabled={pending}
+          onClick={() =>
             startTransition(async () => {
               try {
-                await renameTemplateTask(task.id, name);
+                await deleteTemplateTask(task.id);
               } catch {
-                setName(task.name);
+                /* ignore */
               }
-            });
+            })
           }
-        }}
-        style={{
-          flex: 1,
-          border: "none",
-          outline: "none",
-          background: "transparent",
-          fontSize: 15,
-          color: "var(--label)",
-          padding: "2px 0",
-        }}
-      />
-      <button
-        disabled={pending}
-        onClick={() =>
-          startTransition(async () => {
-            try {
-              await deleteTemplateTask(task.id);
-            } catch {
-              /* ignore */
-            }
-          })
-        }
-        style={{ fontSize: 13, color: "var(--terracotta)", cursor: "pointer" }}
-      >
-        {t("delete")}
-      </button>
+          style={{ fontSize: 13, color: "var(--terracotta)", cursor: "pointer", flexShrink: 0 }}
+        >
+          {t("delete")}
+        </button>
+      </div>
+
+      <TaskLinks templateId={task.id} links={links} />
+    </div>
+  );
+}
+
+function ReorderButton({
+  dir,
+  disabled,
+  onClick,
+  label,
+}: {
+  dir: "up" | "down";
+  disabled: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      style={{
+        width: 18,
+        height: 15,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: disabled ? "var(--label-tertiary)" : "var(--label-secondary)",
+        opacity: disabled ? 0.35 : 1,
+        cursor: disabled ? "default" : "pointer",
+        lineHeight: 1,
+        fontSize: 10,
+      }}
+    >
+      {dir === "up" ? "▲" : "▼"}
+    </button>
+  );
+}
+
+function TaskLinks({
+  templateId,
+  links,
+}: {
+  templateId: string;
+  links: TaskTemplateLinkRow[];
+}) {
+  const t = useTranslations("template");
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !url.trim()) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        await addTaskLink({ templateId, name, url });
+        setName("");
+        setUrl("");
+        setOpen(false);
+      } catch (err: any) {
+        setError(err?.message ?? "");
+      }
+    });
+  }
+
+  function remove(id: string) {
+    startTransition(async () => {
+      try {
+        await deleteTaskLink(id);
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+
+  return (
+    <div style={{ marginInlineStart: 30, marginTop: links.length || open ? 4 : 0 }}>
+      <div className="flex flex-wrap items-center gap-2">
+        {links.map((l) => (
+          <span
+            key={l.id}
+            className="inline-flex items-center gap-1"
+            style={{
+              fontSize: 13,
+              borderRadius: 100,
+              padding: "3px 4px 3px 10px",
+              background: "var(--fill-tertiary)",
+            }}
+          >
+            <a
+              href={l.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "var(--tint)", textDecoration: "none" }}
+              title={l.url}
+            >
+              {l.name}
+            </a>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => remove(l.id)}
+              aria-label={t("removeLink")}
+              title={t("removeLink")}
+              style={{
+                width: 16,
+                height: 16,
+                borderRadius: "50%",
+                color: "var(--label-tertiary)",
+                cursor: "pointer",
+                fontSize: 11,
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
+          </span>
+        ))}
+        {!open && (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            style={{ fontSize: 13, color: "var(--tint)", cursor: "pointer" }}
+          >
+            {t("addLink")}
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <form onSubmit={submit} className="mt-2 flex flex-wrap items-center gap-2">
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t("linkName")}
+            className="ios-input"
+            style={{ width: 150 }}
+          />
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder={t("linkUrl")}
+            className="ios-input flex-1"
+            style={{ minWidth: 180 }}
+          />
+          <button
+            type="submit"
+            disabled={pending || !name.trim() || !url.trim()}
+            className="ios-btn"
+            style={{ height: 32, fontSize: 14 }}
+          >
+            {t("add")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              setError(null);
+            }}
+            className="ios-btn-ghost"
+            style={{ height: 32, fontSize: 14 }}
+          >
+            {t("cancel")}
+          </button>
+          {error && (
+            <span style={{ width: "100%", fontSize: 13, color: "var(--terracotta)" }}>
+              {error}
+            </span>
+          )}
+        </form>
+      )}
     </div>
   );
 }

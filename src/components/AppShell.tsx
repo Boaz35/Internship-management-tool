@@ -19,12 +19,12 @@ export function AppShell({
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       <Sidebar name={name} email={email} role={role} />
       <main style={{ flex: 1, overflowY: "auto", minWidth: 0 }}>{children}</main>
-      {/* Pinned top-right of the screen, in both LTR and RTL. */}
+      {/* Pinned to the top trailing corner: top-right in LTR, top-left in RTL. */}
       <div
         style={{
           position: "fixed",
           top: 16,
-          right: 20,
+          insetInlineEnd: 20,
           zIndex: 50,
         }}
       >

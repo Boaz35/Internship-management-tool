@@ -3,7 +3,11 @@ import { requireAnyRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { TemplateEditor } from "@/components/TemplateEditor";
-import type { MilestoneRow, TaskTemplateRow } from "@/lib/database.types";
+import type {
+  MilestoneRow,
+  TaskTemplateLinkRow,
+  TaskTemplateRow,
+} from "@/lib/database.types";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +16,12 @@ export default async function TemplatePage() {
   const t = await getTranslations("template");
   const supabase = createClient();
 
-  const [{ data: milestones }, { data: templates }] = await Promise.all([
-    supabase.from("milestones").select("*").order("sequence"),
-    supabase.from("task_templates").select("*").order("sequence"),
-  ]);
+  const [{ data: milestones }, { data: templates }, { data: links }] =
+    await Promise.all([
+      supabase.from("milestones").select("*").order("sequence"),
+      supabase.from("task_templates").select("*").order("sequence"),
+      supabase.from("task_template_links").select("*").order("sequence"),
+    ]);
 
   return (
     <AppShell name={user.full_name} email={user.email} role={user.role}>
@@ -26,6 +32,7 @@ export default async function TemplatePage() {
           <TemplateEditor
             milestones={(milestones as MilestoneRow[]) ?? []}
             templates={(templates as TaskTemplateRow[]) ?? []}
+            links={(links as TaskTemplateLinkRow[]) ?? []}
           />
         </div>
       </div>

@@ -42,7 +42,7 @@ export default function LoginPage({
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
-      <div style={{ position: "fixed", top: 16, right: 20, zIndex: 50 }}>
+      <div style={{ position: "fixed", top: 16, insetInlineEnd: 20, zIndex: 50 }}>
         <LanguageToggle />
       </div>
       <div
