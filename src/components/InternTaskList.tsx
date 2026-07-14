@@ -6,12 +6,20 @@ import type { MilestoneRow, TaskRow } from "@/lib/database.types";
 import { setTaskCompleted } from "@/app/actions/intern";
 import { StatusPill } from "@/components/ui";
 
+type TaskLink = { name: string; url: string };
+
+function taskKey(milestoneId: string, name: string) {
+  return `${milestoneId} ${name.trim().toLowerCase()}`;
+}
+
 export function InternTaskList({
   milestones,
   tasks,
+  linksByKey = {},
 }: {
   milestones: MilestoneRow[];
   tasks: TaskRow[];
+  linksByKey?: Record<string, TaskLink[]>;
 }) {
   const t = useTranslations("internTasks");
   return (
@@ -37,7 +45,11 @@ export function InternTaskList({
               </div>
             </div>
             {group.map((task) => (
-              <TaskRowItem key={task.id} task={task} />
+              <TaskRowItem
+                key={task.id}
+                task={task}
+                links={linksByKey[taskKey(task.milestone_id, task.name)] ?? []}
+              />
             ))}
             {group.length === 0 && (
               <div
@@ -60,7 +72,7 @@ export function InternTaskList({
   );
 }
 
-function TaskRowItem({ task }: { task: TaskRow }) {
+function TaskRowItem({ task, links = [] }: { task: TaskRow; links?: TaskLink[] }) {
   const t = useTranslations("internTasks");
   const [completed, setCompleted] = useState(task.completed_by_intern);
   const [pending, startTransition] = useTransition();
@@ -89,58 +101,101 @@ function TaskRowItem({ task }: { task: TaskRow }) {
     approved || completed ? "none" : "1px solid var(--label-tertiary)";
 
   return (
-    <div
-      className="flex items-center gap-3"
-      style={{ minHeight: 44, borderTop: "1px solid var(--separator)" }}
-    >
-      <button
-        onClick={toggle}
-        disabled={approved || pending}
-        aria-label={checked ? t("completed") : t("markDone")}
-        className="flex items-center justify-center"
-        style={{
-          width: 22,
-          height: 22,
-          borderRadius: "50%",
-          flexShrink: 0,
-          boxSizing: "border-box",
-          background: circleBg,
-          border: circleBorder,
-          cursor: approved ? "default" : "pointer",
-        }}
-      >
-        {checked && (
-          <svg width="11" height="9" viewBox="0 0 11 9">
-            <path
-              d="M 1 4.5 L 4 7.5 L 10 1"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
-      </button>
+    <div style={{ borderTop: "1px solid var(--separator)", padding: "6px 0" }}>
+      <div className="flex items-center gap-3" style={{ minHeight: 32 }}>
+        <button
+          onClick={toggle}
+          disabled={approved || pending}
+          aria-label={checked ? t("completed") : t("markDone")}
+          className="flex items-center justify-center"
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: "50%",
+            flexShrink: 0,
+            boxSizing: "border-box",
+            background: circleBg,
+            border: circleBorder,
+            cursor: approved ? "default" : "pointer",
+          }}
+        >
+          {checked && (
+            <svg width="11" height="9" viewBox="0 0 11 9">
+              <path
+                d="M 1 4.5 L 4 7.5 L 10 1"
+                fill="none"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+        </button>
 
-      <div
-        style={{
-          flex: 1,
-          fontSize: 15,
-          color: approved ? "var(--label-secondary)" : "var(--label)",
-          textDecoration: approved ? "line-through" : "none",
-        }}
-      >
-        {task.name}
+        <div
+          style={{
+            flex: 1,
+            fontSize: 15,
+            color: approved ? "var(--label-secondary)" : "var(--label)",
+            textDecoration: approved ? "line-through" : "none",
+          }}
+        >
+          {task.name}
+        </div>
+
+        {task.source === "custom" && <StatusPill tone="orange">{t("mentor")}</StatusPill>}
+
+        {approved ? (
+          <StatusPill tone="green">{t("approved")}</StatusPill>
+        ) : completed ? (
+          <StatusPill tone="tint">{t("awaitingApproval")}</StatusPill>
+        ) : null}
       </div>
 
-      {task.source === "custom" && <StatusPill tone="orange">{t("mentor")}</StatusPill>}
-
-      {approved ? (
-        <StatusPill tone="green">{t("approved")}</StatusPill>
-      ) : completed ? (
-        <StatusPill tone="tint">{t("awaitingApproval")}</StatusPill>
-      ) : null}
+      {links.length > 0 && (
+        <div
+          className="flex flex-wrap gap-2"
+          style={{ marginInlineStart: 34, marginTop: 4 }}
+        >
+          {links.map((l, i) => (
+            <a
+              key={i}
+              href={l.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={l.url}
+              className="inline-flex items-center gap-1"
+              style={{
+                fontSize: 13,
+                borderRadius: 100,
+                padding: "3px 10px",
+                background: "var(--fill-tertiary)",
+                color: "var(--tint)",
+                textDecoration: "none",
+              }}
+            >
+              <LinkGlyph />
+              {l.name}
+            </a>
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+function LinkGlyph() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 14 14" style={{ flexShrink: 0 }} aria-hidden>
+      <path
+        d="M5.5 8.5 L8.5 5.5 M6 3.5 L8.5 1 A2.5 2.5 0 0 1 12 4.5 L9.5 7 M8 10.5 L5.5 13 A2.5 2.5 0 0 1 2 9.5 L4.5 7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
