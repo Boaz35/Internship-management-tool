@@ -64,5 +64,55 @@ export async function deleteTask(taskId: string, internId: string) {
   revalidatePath(`/designer/intern/${internId}`);
 }
 
+// --- Per-task resource links -------------------------------------------------
+
+function revalidateTaskLinkRoutes(internId: string) {
+  revalidatePath(`/designer/intern/${internId}`);
+  revalidatePath(`/leader/intern/${internId}`);
+  revalidatePath("/intern");
+}
+
+// Attach a named URL to a single task (works for custom and template tasks).
+export async function addTaskLink(input: {
+  taskId: string;
+  internId: string;
+  name: string;
+  url: string;
+}) {
+  const user = await assertCanMentor(input.internId);
+  const name = input.name.trim();
+  let url = input.url.trim();
+  if (!name || !url) throw new Error("A label and URL are both required.");
+  // Be forgiving about the scheme so a pasted "example.com" still works.
+  if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+
+  const supabase = createClient();
+  const { data: existing } = await supabase
+    .from("task_links")
+    .select("sequence")
+    .eq("task_id", input.taskId)
+    .order("sequence", { ascending: false })
+    .limit(1);
+  const nextSeq = (existing?.[0]?.sequence ?? 0) + 1;
+
+  const { error } = await supabase.from("task_links").insert({
+    task_id: input.taskId,
+    name,
+    url,
+    sequence: nextSeq,
+    created_by: user.id,
+  });
+  if (error) throw new Error(error.message);
+  revalidateTaskLinkRoutes(input.internId);
+}
+
+export async function deleteTaskLink(id: string, internId: string) {
+  await assertCanMentor(internId);
+  const supabase = createClient();
+  const { error } = await supabase.from("task_links").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidateTaskLinkRoutes(internId);
+}
+
 // NOTE: the free-form private notes feature was replaced by structured mentor
 // feedback in v2. See src/app/actions/feedback.ts.

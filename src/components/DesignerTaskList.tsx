@@ -7,10 +7,13 @@ import {
   setTaskApproved,
   addCustomTask,
   deleteTask,
+  addTaskLink,
+  deleteTaskLink,
 } from "@/app/actions/designer";
 import { StatusPill } from "@/components/ui";
 
 type TaskLink = { name: string; url: string };
+type TaskLinkItem = { id: string; name: string; url: string };
 
 function taskKey(milestoneId: string, name: string) {
   return `${milestoneId} ${name.trim().toLowerCase()}`;
@@ -22,12 +25,14 @@ export function DesignerTaskList({
   tasks,
   readOnly = false,
   linksByKey = {},
+  taskLinksByTaskId = {},
 }: {
   internId: string;
   milestones: MilestoneRow[];
   tasks: TaskRow[];
   readOnly?: boolean;
   linksByKey?: Record<string, TaskLink[]>;
+  taskLinksByTaskId?: Record<string, TaskLinkItem[]>;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -39,6 +44,7 @@ export function DesignerTaskList({
           internId={internId}
           readOnly={readOnly}
           linksByKey={linksByKey}
+          taskLinksByTaskId={taskLinksByTaskId}
         />
       ))}
     </div>
@@ -51,12 +57,14 @@ function MilestoneSection({
   internId,
   readOnly,
   linksByKey,
+  taskLinksByTaskId,
 }: {
   milestone: MilestoneRow;
   tasks: TaskRow[];
   internId: string;
   readOnly: boolean;
   linksByKey: Record<string, TaskLink[]>;
+  taskLinksByTaskId: Record<string, TaskLinkItem[]>;
 }) {
   const t = useTranslations("tasks");
   const [showApproved, setShowApproved] = useState(false);
@@ -82,6 +90,7 @@ function MilestoneSection({
           internId={internId}
           readOnly={readOnly}
           links={linksByKey[taskKey(task.milestone_id, task.name)] ?? []}
+          taskLinks={taskLinksByTaskId[task.id] ?? []}
         />
       ))}
 
@@ -128,6 +137,7 @@ function MilestoneSection({
                 internId={internId}
                 readOnly={readOnly}
                 links={linksByKey[taskKey(task.milestone_id, task.name)] ?? []}
+                taskLinks={taskLinksByTaskId[task.id] ?? []}
               />
             ))}
         </>
@@ -143,11 +153,13 @@ function DesignerTaskRow({
   internId,
   readOnly,
   links = [],
+  taskLinks = [],
 }: {
   task: TaskRow;
   internId: string;
   readOnly: boolean;
   links?: TaskLink[];
+  taskLinks?: TaskLinkItem[];
 }) {
   const t = useTranslations("tasks");
   const [approved, setApproved] = useState(task.approved_by_designer);
@@ -216,33 +228,190 @@ function DesignerTaskRow({
         )}
       </div>
 
-      {links.length > 0 && (
-        <div
-          className="flex flex-wrap gap-2"
-          style={{ marginTop: 2, marginBottom: 6 }}
-        >
-          {links.map((l, i) => (
+      <TaskLinksArea
+        internId={internId}
+        taskId={task.id}
+        templateLinks={links}
+        taskLinks={taskLinks}
+        readOnly={readOnly}
+      />
+    </div>
+  );
+}
+
+// Links row for a task: read-only template links + removable per-task links,
+// plus an add-link form for mentors/leaders. Works for custom + template tasks.
+function TaskLinksArea({
+  internId,
+  taskId,
+  templateLinks,
+  taskLinks,
+  readOnly,
+}: {
+  internId: string;
+  taskId: string;
+  templateLinks: TaskLink[];
+  taskLinks: TaskLinkItem[];
+  readOnly: boolean;
+}) {
+  const t = useTranslations("tasks");
+  const tc = useTranslations("common");
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !url.trim()) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        await addTaskLink({ taskId, internId, name, url });
+        setName("");
+        setUrl("");
+        setOpen(false);
+      } catch (err: any) {
+        setError(err?.message ?? "");
+      }
+    });
+  }
+
+  function remove(id: string) {
+    startTransition(async () => {
+      try {
+        await deleteTaskLink(id, internId);
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+
+  const hasLinks = templateLinks.length > 0 || taskLinks.length > 0;
+  if (readOnly && !hasLinks) return null;
+
+  return (
+    <div style={{ marginTop: hasLinks || !readOnly ? 2 : 0, marginBottom: 6 }}>
+      <div className="flex flex-wrap items-center gap-2">
+        {templateLinks.map((l, i) => (
+          <a
+            key={`t${i}`}
+            href={l.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={l.url}
+            className="inline-flex items-center gap-1"
+            style={{
+              fontSize: 13,
+              borderRadius: 100,
+              padding: "3px 10px",
+              background: "var(--fill-tertiary)",
+              color: "var(--tint)",
+              textDecoration: "none",
+            }}
+          >
+            <LinkGlyph />
+            {l.name}
+          </a>
+        ))}
+        {taskLinks.map((l) => (
+          <span
+            key={l.id}
+            className="inline-flex items-center gap-1"
+            style={{
+              fontSize: 13,
+              borderRadius: 100,
+              padding: "3px 4px 3px 10px",
+              background: "var(--fill-tertiary)",
+            }}
+          >
             <a
-              key={i}
               href={l.url}
               target="_blank"
               rel="noopener noreferrer"
               title={l.url}
               className="inline-flex items-center gap-1"
-              style={{
-                fontSize: 13,
-                borderRadius: 100,
-                padding: "3px 10px",
-                background: "var(--fill-tertiary)",
-                color: "var(--tint)",
-                textDecoration: "none",
-              }}
+              style={{ color: "var(--tint)", textDecoration: "none" }}
             >
               <LinkGlyph />
               {l.name}
             </a>
-          ))}
-        </div>
+            {!readOnly && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => remove(l.id)}
+                aria-label={t("removeLink")}
+                title={t("removeLink")}
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: "50%",
+                  color: "var(--label-tertiary)",
+                  cursor: "pointer",
+                  fontSize: 11,
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </span>
+        ))}
+        {!readOnly && !open && (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            style={{ fontSize: 13, color: "var(--tint)", cursor: "pointer" }}
+          >
+            {t("addLink")}
+          </button>
+        )}
+      </div>
+
+      {!readOnly && open && (
+        <form onSubmit={submit} className="mt-2 flex flex-wrap items-center gap-2">
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t("linkName")}
+            className="ios-input"
+            style={{ width: 150 }}
+          />
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder={t("linkUrl")}
+            className="ios-input flex-1"
+            style={{ minWidth: 180 }}
+          />
+          <button
+            type="submit"
+            disabled={pending || !name.trim() || !url.trim()}
+            className="ios-btn"
+            style={{ height: 32, fontSize: 14 }}
+          >
+            {tc("add")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              setError(null);
+            }}
+            className="ios-btn-ghost"
+            style={{ height: 32, fontSize: 14 }}
+          >
+            {tc("cancel")}
+          </button>
+          {error && (
+            <span style={{ width: "100%", fontSize: 13, color: "var(--terracotta)" }}>
+              {error}
+            </span>
+          )}
+        </form>
       )}
     </div>
   );

@@ -16,10 +16,12 @@ export function InternTaskList({
   milestones,
   tasks,
   linksByKey = {},
+  taskLinksByTaskId = {},
 }: {
   milestones: MilestoneRow[];
   tasks: TaskRow[];
   linksByKey?: Record<string, TaskLink[]>;
+  taskLinksByTaskId?: Record<string, TaskLink[]>;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -29,6 +31,7 @@ export function InternTaskList({
           milestone={m}
           tasks={tasks.filter((t) => t.milestone_id === m.id)}
           linksByKey={linksByKey}
+          taskLinksByTaskId={taskLinksByTaskId}
         />
       ))}
     </div>
@@ -39,10 +42,12 @@ function InternMilestoneSection({
   milestone,
   tasks,
   linksByKey,
+  taskLinksByTaskId,
 }: {
   milestone: MilestoneRow;
   tasks: TaskRow[];
   linksByKey: Record<string, TaskLink[]>;
+  taskLinksByTaskId: Record<string, TaskLink[]>;
 }) {
   const t = useTranslations("internTasks");
   const [showApproved, setShowApproved] = useState(false);
@@ -65,7 +70,10 @@ function InternMilestoneSection({
         <TaskRowItem
           key={task.id}
           task={task}
-          links={linksByKey[taskKey(task.milestone_id, task.name)] ?? []}
+          links={[
+            ...(linksByKey[taskKey(task.milestone_id, task.name)] ?? []),
+            ...(taskLinksByTaskId[task.id] ?? []),
+          ]}
         />
       ))}
 
@@ -108,7 +116,10 @@ function InternMilestoneSection({
               <TaskRowItem
                 key={task.id}
                 task={task}
-                links={linksByKey[taskKey(task.milestone_id, task.name)] ?? []}
+                links={[
+                  ...(linksByKey[taskKey(task.milestone_id, task.name)] ?? []),
+                  ...(taskLinksByTaskId[task.id] ?? []),
+                ]}
               />
             ))}
         </>

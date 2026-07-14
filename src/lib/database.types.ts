@@ -43,6 +43,16 @@ export interface TaskTemplateLinkRow {
   created_at: string;
 }
 
+export interface TaskLinkRow {
+  id: string;
+  task_id: string;
+  name: string;
+  url: string;
+  sequence: number;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface InternRow {
   id: string;
   user_id: string;
@@ -136,6 +146,7 @@ export interface Database {
       task_template_links: Table<TaskTemplateLinkRow>;
       interns: Table<InternRow>;
       tasks: Table<TaskRow>;
+      task_links: Table<TaskLinkRow>;
       hours_logs: Table<HoursLogRow>;
       notes: Table<NoteRow>;
       feedback_categories: Table<FeedbackCategoryRow>;

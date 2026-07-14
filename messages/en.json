@@ -74,7 +74,11 @@
     "noTasks": "No tasks.",
     "addTask": "+ Add task",
     "taskName": "Task name",
-    "deleteTask": "Delete task"
+    "deleteTask": "Delete task",
+    "addLink": "+ Add link",
+    "linkName": "Label",
+    "linkUrl": "https://…",
+    "removeLink": "Remove link"
   },
   "feedback": {
     "title": "Feedback",

@@ -74,7 +74,11 @@
     "noTasks": "אין משימות.",
     "addTask": "+ הוספת משימה",
     "taskName": "שם המשימה",
-    "deleteTask": "מחיקת משימה"
+    "deleteTask": "מחיקת משימה",
+    "addLink": "+ הוספת קישור",
+    "linkName": "תווית",
+    "linkUrl": "https://…",
+    "removeLink": "הסרת קישור"
   },
   "feedback": {
     "title": "פידבק",

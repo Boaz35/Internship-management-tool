@@ -20,12 +20,14 @@ import type {
   InternRow,
   MilestoneRow,
   TaskRow,
+  TaskLinkRow,
   TaskTemplateRow,
   TaskTemplateLinkRow,
   UserRow,
 } from "@/lib/database.types";
 
 export type TaskLink = { name: string; url: string };
+export type TaskLinkItem = { id: string; name: string; url: string };
 
 // Intern tasks are copies of template tasks (matched by milestone + name), so
 // links attached to a template task are shown on the matching intern task.
@@ -142,6 +144,28 @@ export async function InternDetail({
 
   const taskRows = (tasks as TaskRow[]) ?? [];
 
+  // Per-task resource links (custom + template tasks), keyed by task id.
+  let taskLinks: TaskLinkRow[] = [];
+  if (taskRows.length > 0) {
+    const { data: tl } = await supabase
+      .from("task_links")
+      .select("*")
+      .in(
+        "task_id",
+        taskRows.map((t) => t.id)
+      )
+      .order("sequence");
+    taskLinks = (tl as TaskLinkRow[]) ?? [];
+  }
+  const taskLinksByTaskId: Record<string, TaskLinkItem[]> = {};
+  for (const l of taskLinks) {
+    (taskLinksByTaskId[l.task_id] ??= []).push({
+      id: l.id,
+      name: l.name,
+      url: l.url,
+    });
+  }
+
   const name = person?.full_name ?? person?.email ?? "Intern";
   const hours = summarizeHours((logs as HoursLogRow[]) ?? [], intern.target_hours);
   const projected = projectEndDate(hours.remaining);
@@ -203,6 +227,7 @@ export async function InternDetail({
               milestones={(milestones as MilestoneRow[]) ?? []}
               tasks={taskRows}
               linksByKey={linksByKey}
+              taskLinksByTaskId={taskLinksByTaskId}
             />
           }
           feedbackSlot={
