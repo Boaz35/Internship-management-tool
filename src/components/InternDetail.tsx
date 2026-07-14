@@ -20,8 +20,18 @@ import type {
   InternRow,
   MilestoneRow,
   TaskRow,
+  TaskTemplateRow,
+  TaskTemplateLinkRow,
   UserRow,
 } from "@/lib/database.types";
+
+export type TaskLink = { name: string; url: string };
+
+// Intern tasks are copies of template tasks (matched by milestone + name), so
+// links attached to a template task are shown on the matching intern task.
+function taskKey(milestoneId: string, name: string) {
+  return `${milestoneId} ${name.trim().toLowerCase()}`;
+}
 
 // Full per-intern view, used by the designer and the team leader.
 export async function InternDetail({
@@ -62,6 +72,8 @@ export async function InternDetail({
     { data: logs },
     { data: categories },
     { data: entries },
+    { data: templates },
+    { data: links },
   ] = await Promise.all([
     supabase.from("users").select("*").eq("id", intern.user_id).single<UserRow>(),
     // Global phases (intern_id null) + phases scoped to this intern.
@@ -86,7 +98,23 @@ export async function InternDetail({
       .select("*")
       .eq("intern_id", internId)
       .order("created_at", { ascending: false }),
+    supabase.from("task_templates").select("*"),
+    supabase.from("task_template_links").select("*").order("sequence"),
   ]);
+
+  // Map each task (by milestone + name) to the links on its template task.
+  const templateById = new Map(
+    ((templates as TaskTemplateRow[]) ?? []).map((tt) => [tt.id, tt])
+  );
+  const linksByKey: Record<string, TaskLink[]> = {};
+  for (const l of (links as TaskTemplateLinkRow[]) ?? []) {
+    const tpl = templateById.get(l.template_id);
+    if (!tpl) continue;
+    (linksByKey[taskKey(tpl.milestone_id, tpl.name)] ??= []).push({
+      name: l.name,
+      url: l.url,
+    });
+  }
 
   const entryRows = (entries as FeedbackEntryRow[]) ?? [];
   let ratings: FeedbackRatingRow[] = [];
@@ -174,6 +202,7 @@ export async function InternDetail({
               internId={internId}
               milestones={(milestones as MilestoneRow[]) ?? []}
               tasks={taskRows}
+              linksByKey={linksByKey}
             />
           }
           feedbackSlot={

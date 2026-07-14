@@ -10,16 +10,24 @@ import {
 } from "@/app/actions/designer";
 import { StatusPill } from "@/components/ui";
 
+type TaskLink = { name: string; url: string };
+
+function taskKey(milestoneId: string, name: string) {
+  return `${milestoneId} ${name.trim().toLowerCase()}`;
+}
+
 export function DesignerTaskList({
   internId,
   milestones,
   tasks,
   readOnly = false,
+  linksByKey = {},
 }: {
   internId: string;
   milestones: MilestoneRow[];
   tasks: TaskRow[];
   readOnly?: boolean;
+  linksByKey?: Record<string, TaskLink[]>;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -30,6 +38,7 @@ export function DesignerTaskList({
           tasks={tasks.filter((t) => t.milestone_id === m.id)}
           internId={internId}
           readOnly={readOnly}
+          linksByKey={linksByKey}
         />
       ))}
     </div>
@@ -41,11 +50,13 @@ function MilestoneSection({
   tasks,
   internId,
   readOnly,
+  linksByKey,
 }: {
   milestone: MilestoneRow;
   tasks: TaskRow[];
   internId: string;
   readOnly: boolean;
+  linksByKey: Record<string, TaskLink[]>;
 }) {
   const t = useTranslations("tasks");
   const [showApproved, setShowApproved] = useState(false);
@@ -70,6 +81,7 @@ function MilestoneSection({
           task={task}
           internId={internId}
           readOnly={readOnly}
+          links={linksByKey[taskKey(task.milestone_id, task.name)] ?? []}
         />
       ))}
 
@@ -115,6 +127,7 @@ function MilestoneSection({
                 task={task}
                 internId={internId}
                 readOnly={readOnly}
+                links={linksByKey[taskKey(task.milestone_id, task.name)] ?? []}
               />
             ))}
         </>
@@ -129,10 +142,12 @@ function DesignerTaskRow({
   task,
   internId,
   readOnly,
+  links = [],
 }: {
   task: TaskRow;
   internId: string;
   readOnly: boolean;
+  links?: TaskLink[];
 }) {
   const t = useTranslations("tasks");
   const [approved, setApproved] = useState(task.approved_by_designer);
@@ -154,54 +169,97 @@ function DesignerTaskRow({
   const canApprove = completed || approved;
 
   return (
-    <div
-      className="flex items-center gap-3"
-      style={{ minHeight: 46, borderTop: "1px solid var(--separator)" }}
-    >
-      <div
-        style={{
-          flex: 1,
-          fontSize: 15,
-          color: approved ? "var(--label-secondary)" : "var(--label)",
-          textDecoration: approved ? "line-through" : "none",
-        }}
-      >
-        {task.name}
-      </div>
-
-      {task.source === "custom" && <StatusPill tone="orange">{t("custom")}</StatusPill>}
-
-      {approved ? (
-        <StatusPill tone="green">{t("approved")}</StatusPill>
-      ) : completed ? (
-        <StatusPill tone="tint">{t("readyToReview")}</StatusPill>
-      ) : null}
-
-      {!readOnly && (
-        <button
-          onClick={toggleApprove}
-          disabled={pending || !canApprove}
+    <div style={{ borderTop: "1px solid var(--separator)", padding: "2px 0" }}>
+      <div className="flex items-center gap-3" style={{ minHeight: 44 }}>
+        <div
           style={{
-            fontSize: 13,
-            fontWeight: 590,
-            borderRadius: 100,
-            padding: "5px 14px",
-            flexShrink: 0,
-            cursor: canApprove ? "pointer" : "default",
-            color: approved ? "var(--label-secondary)" : "#fff",
-            background: approved ? "transparent" : "var(--green)",
-            border: approved ? "1px solid var(--separator)" : "none",
-            opacity: canApprove ? 1 : 0.35,
+            flex: 1,
+            fontSize: 15,
+            color: approved ? "var(--label-secondary)" : "var(--label)",
+            textDecoration: approved ? "line-through" : "none",
           }}
         >
-          {approved ? t("undo") : t("approve")}
-        </button>
-      )}
+          {task.name}
+        </div>
 
-      {!readOnly && task.source === "custom" && (
-        <DeleteTaskButton taskId={task.id} internId={internId} />
+        {task.source === "custom" && <StatusPill tone="orange">{t("custom")}</StatusPill>}
+
+        {approved ? (
+          <StatusPill tone="green">{t("approved")}</StatusPill>
+        ) : completed ? (
+          <StatusPill tone="tint">{t("readyToReview")}</StatusPill>
+        ) : null}
+
+        {!readOnly && (
+          <button
+            onClick={toggleApprove}
+            disabled={pending || !canApprove}
+            style={{
+              fontSize: 13,
+              fontWeight: 590,
+              borderRadius: 100,
+              padding: "5px 14px",
+              flexShrink: 0,
+              cursor: canApprove ? "pointer" : "default",
+              color: approved ? "var(--label-secondary)" : "#fff",
+              background: approved ? "transparent" : "var(--green)",
+              border: approved ? "1px solid var(--separator)" : "none",
+              opacity: canApprove ? 1 : 0.35,
+            }}
+          >
+            {approved ? t("undo") : t("approve")}
+          </button>
+        )}
+
+        {!readOnly && task.source === "custom" && (
+          <DeleteTaskButton taskId={task.id} internId={internId} />
+        )}
+      </div>
+
+      {links.length > 0 && (
+        <div
+          className="flex flex-wrap gap-2"
+          style={{ marginTop: 2, marginBottom: 6 }}
+        >
+          {links.map((l, i) => (
+            <a
+              key={i}
+              href={l.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={l.url}
+              className="inline-flex items-center gap-1"
+              style={{
+                fontSize: 13,
+                borderRadius: 100,
+                padding: "3px 10px",
+                background: "var(--fill-tertiary)",
+                color: "var(--tint)",
+                textDecoration: "none",
+              }}
+            >
+              <LinkGlyph />
+              {l.name}
+            </a>
+          ))}
+        </div>
       )}
     </div>
+  );
+}
+
+function LinkGlyph() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 14 14" style={{ flexShrink: 0 }} aria-hidden>
+      <path
+        d="M5.5 8.5 L8.5 5.5 M6 3.5 L8.5 1 A2.5 2.5 0 0 1 12 4.5 L9.5 7 M8 10.5 L5.5 13 A2.5 2.5 0 0 1 2 9.5 L4.5 7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
