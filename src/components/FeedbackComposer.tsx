@@ -32,7 +32,6 @@ export function FeedbackComposer({
   const [categories, setCategories] = useState(initialCategories);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [drafts, setDrafts] = useState<Record<string, DraftRating>>({});
-  const [context, setContext] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -80,7 +79,6 @@ export function FeedbackComposer({
   function reset() {
     setSelected(new Set());
     setDrafts({});
-    setContext("");
   }
 
   function save() {
@@ -98,7 +96,7 @@ export function FeedbackComposer({
       try {
         await createFeedbackEntry({
           internId,
-          context: context || null,
+          context: null,
           ratings,
         });
         reset();
@@ -112,17 +110,6 @@ export function FeedbackComposer({
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <label className="ios-field-label">{t("context")}</label>
-        <input
-          value={context}
-          onChange={(e) => setContext(e.target.value)}
-          placeholder={t("contextPlaceholder")}
-          className="ios-input"
-          style={{ width: "100%" }}
-        />
-      </div>
-
       <div>
         <div className="ios-field-label">{t("categories")}</div>
         <CategoryChips
