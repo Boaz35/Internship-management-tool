@@ -2,12 +2,17 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import type { FeedbackCategoryRow, FeedbackRating } from "@/lib/database.types";
-import { categoryName } from "@/lib/feedback";
+import type { FeedbackCategoryRow } from "@/lib/database.types";
+import { categoryName, STAR_MAX } from "@/lib/feedback";
 
 export interface DraftRating {
-  rating: FeedbackRating | null;
+  stars: number | null;
   comment: string;
+}
+
+// "★★★★☆" for a 4/5 rating.
+function starGlyphs(stars: number): string {
+  return "★".repeat(stars) + "☆".repeat(Math.max(0, STAR_MAX - stars));
 }
 
 // Live, grouped-by-category text block assembled as the mentor writes.
@@ -26,21 +31,15 @@ export function LiveCategorySummary({
   const locale = useLocale();
   const [copied, setCopied] = useState(false);
 
-  const ratingLabel: Record<FeedbackRating, string> = {
-    excellent: t("ratingExcellent"),
-    good: t("ratingGood"),
-    fair: t("ratingFair"),
-  };
-
   const lines: string[] = [];
   for (const cat of categories) {
     if (!selected.has(cat.id)) continue;
     const d = drafts[cat.id];
     if (!d) continue;
     const hasComment = d.comment.trim().length > 0;
-    if (!d.rating && !hasComment) continue;
+    if (d.stars == null && !hasComment) continue;
     const parts: string[] = [];
-    if (d.rating) parts.push(ratingLabel[d.rating]);
+    if (d.stars != null) parts.push(`${starGlyphs(d.stars)} ${d.stars}/${STAR_MAX}`);
     if (hasComment) parts.push(d.comment.trim());
     lines.push(`• ${categoryName(cat, locale)}: ${parts.join(" — ")}`);
   }

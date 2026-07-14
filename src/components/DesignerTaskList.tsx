@@ -2,42 +2,25 @@
 
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import type {
-  FeedbackCategoryRow,
-  MilestoneRow,
-  TaskRow,
-} from "@/lib/database.types";
+import type { MilestoneRow, TaskRow } from "@/lib/database.types";
 import {
   setTaskApproved,
   addCustomTask,
   deleteTask,
 } from "@/app/actions/designer";
 import { StatusPill } from "@/components/ui";
-import { TaskFeedbackModal } from "@/components/TaskFeedbackModal";
-
-type ActiveTask = {
-  taskId: string;
-  taskName: string;
-  milestoneName: string;
-};
 
 export function DesignerTaskList({
   internId,
   milestones,
   tasks,
   readOnly = false,
-  categories = [],
-  feedbackCountByTask = {},
 }: {
   internId: string;
   milestones: MilestoneRow[];
   tasks: TaskRow[];
   readOnly?: boolean;
-  categories?: FeedbackCategoryRow[];
-  feedbackCountByTask?: Record<string, number>;
 }) {
-  const [active, setActive] = useState<ActiveTask | null>(null);
-
   return (
     <div className="flex flex-col gap-4">
       {milestones.map((m) => (
@@ -47,27 +30,8 @@ export function DesignerTaskList({
           tasks={tasks.filter((t) => t.milestone_id === m.id)}
           internId={internId}
           readOnly={readOnly}
-          feedbackCountByTask={feedbackCountByTask}
-          onFeedback={(task) =>
-            setActive({
-              taskId: task.id,
-              taskName: task.name,
-              milestoneName: m.name,
-            })
-          }
         />
       ))}
-
-      {active && (
-        <TaskFeedbackModal
-          internId={internId}
-          taskId={active.taskId}
-          taskName={active.taskName}
-          milestoneName={active.milestoneName}
-          categories={categories}
-          onClose={() => setActive(null)}
-        />
-      )}
     </div>
   );
 }
@@ -77,15 +41,11 @@ function MilestoneSection({
   tasks,
   internId,
   readOnly,
-  feedbackCountByTask,
-  onFeedback,
 }: {
   milestone: MilestoneRow;
   tasks: TaskRow[];
   internId: string;
   readOnly: boolean;
-  feedbackCountByTask: Record<string, number>;
-  onFeedback: (task: TaskRow) => void;
 }) {
   const t = useTranslations("tasks");
   const [showApproved, setShowApproved] = useState(false);
@@ -110,8 +70,6 @@ function MilestoneSection({
           task={task}
           internId={internId}
           readOnly={readOnly}
-          feedbackCount={feedbackCountByTask[task.id] ?? 0}
-          onFeedback={() => onFeedback(task)}
         />
       ))}
 
@@ -157,8 +115,6 @@ function MilestoneSection({
                 task={task}
                 internId={internId}
                 readOnly={readOnly}
-                feedbackCount={feedbackCountByTask[task.id] ?? 0}
-                onFeedback={() => onFeedback(task)}
               />
             ))}
         </>
@@ -173,14 +129,10 @@ function DesignerTaskRow({
   task,
   internId,
   readOnly,
-  feedbackCount,
-  onFeedback,
 }: {
   task: TaskRow;
   internId: string;
   readOnly: boolean;
-  feedbackCount: number;
-  onFeedback: () => void;
 }) {
   const t = useTranslations("tasks");
   const [approved, setApproved] = useState(task.approved_by_designer);
@@ -217,20 +169,6 @@ function DesignerTaskRow({
         {task.name}
       </div>
 
-      {feedbackCount > 0 && (
-        <span
-          title={t("hasFeedback", { count: feedbackCount })}
-          className="ios-pill"
-          style={{
-            color: "var(--rating-good)",
-            background: "var(--rating-good-bg)",
-            fontWeight: 500,
-          }}
-        >
-          {t("feedback")} · {feedbackCount}
-        </span>
-      )}
-
       {task.source === "custom" && <StatusPill tone="orange">{t("custom")}</StatusPill>}
 
       {approved ? (
@@ -238,24 +176,6 @@ function DesignerTaskRow({
       ) : completed ? (
         <StatusPill tone="tint">{t("readyToReview")}</StatusPill>
       ) : null}
-
-      {!readOnly && (
-        <button
-          onClick={onFeedback}
-          style={{
-            fontSize: 13,
-            fontWeight: 590,
-            borderRadius: 100,
-            padding: "5px 14px",
-            flexShrink: 0,
-            cursor: "pointer",
-            color: "#000",
-            background: "var(--fill-tertiary)",
-          }}
-        >
-          {t("feedback")}
-        </button>
-      )}
 
       {!readOnly && (
         <button

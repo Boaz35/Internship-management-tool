@@ -3,9 +3,10 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { DesignerTaskList } from "@/components/DesignerTaskList";
 import { OverallFeedbackPanel } from "@/components/OverallFeedbackPanel";
+import { InternTabs } from "@/components/InternTabs";
 import type { FeedbackEntryView } from "@/components/FeedbackHistory";
 import { ProgressBar } from "@/components/ProgressBar";
-import { Avatar, SectionLabel } from "@/components/ui";
+import { Avatar } from "@/components/ui";
 import {
   formatDate,
   summarizeHours,
@@ -106,18 +107,12 @@ export async function InternDetail({
     ratings: ratingsByEntry.get(e.id) ?? [],
   }));
 
-  const feedbackCountByTask: Record<string, number> = {};
-  for (const e of entryRows) {
-    if (e.task_id) feedbackCountByTask[e.task_id] = (feedbackCountByTask[e.task_id] ?? 0) + 1;
-  }
-
   const taskRows = (tasks as TaskRow[]) ?? [];
-  const taskNames: Record<string, string> = {};
-  for (const tk of taskRows) taskNames[tk.id] = tk.name;
 
   const name = person?.full_name ?? person?.email ?? "Intern";
   const hours = summarizeHours((logs as HoursLogRow[]) ?? [], intern.target_hours);
   const projected = projectEndDate(hours.remaining);
+  const categoryRows = (categories as FeedbackCategoryRow[]) ?? [];
 
   return (
     <div>
@@ -150,31 +145,6 @@ export async function InternDetail({
             </p>
           </div>
         </div>
-        <Link
-          href={`/summary/${internId}`}
-          className="inline-flex flex-shrink-0 items-center gap-[7px]"
-          style={{
-            height: 40,
-            padding: "0 18px",
-            borderRadius: 100,
-            background: "var(--fill-tertiary)",
-            color: "#000",
-            fontSize: 15,
-            fontWeight: 500,
-          }}
-        >
-          <span>{t("summaryDocument")}</span>
-          <svg width="7" height="12" viewBox="0 0 7 12" style={{ transform: "scaleX(var(--dir-flip, 1))" }}>
-            <path
-              d="M 1 1 L 6 6 L 1 11"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </Link>
       </div>
 
       <div className="ios-card mt-7" style={{ padding: "20px 24px" }}>
@@ -192,25 +162,22 @@ export async function InternDetail({
         </div>
       </div>
 
-      <div
-        className="mt-8 grid items-start gap-7"
-        style={{ gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr)" }}
-      >
-        <div>
-          <SectionLabel>{t("tasks")}</SectionLabel>
-          <DesignerTaskList
-            internId={internId}
-            milestones={(milestones as MilestoneRow[]) ?? []}
-            tasks={taskRows}
-            categories={(categories as FeedbackCategoryRow[]) ?? []}
-            feedbackCountByTask={feedbackCountByTask}
-          />
-        </div>
-        <OverallFeedbackPanel
-          internId={internId}
-          categories={(categories as FeedbackCategoryRow[]) ?? []}
-          entries={entryViews}
-          taskNames={taskNames}
+      <div className="mt-8">
+        <InternTabs
+          tasksSlot={
+            <DesignerTaskList
+              internId={internId}
+              milestones={(milestones as MilestoneRow[]) ?? []}
+              tasks={taskRows}
+            />
+          }
+          feedbackSlot={
+            <OverallFeedbackPanel
+              internId={internId}
+              categories={categoryRows}
+              entries={entryViews}
+            />
+          }
         />
       </div>
     </div>

@@ -81,15 +81,6 @@ export interface NoteRow {
   created_at: string;
 }
 
-export interface SummaryRow {
-  id: string;
-  intern_id: string;
-  content: string;
-  finalized: boolean;
-  updated_by: string | null;
-  updated_at: string;
-}
-
 export interface FeedbackCategoryRow {
   id: string;
   name_en: string;
@@ -120,7 +111,9 @@ export interface FeedbackRatingRow {
   id: string;
   entry_id: string;
   category_id: string;
+  // Dormant legacy verbal enum — no longer written or read. Superseded by `stars`.
   rating: FeedbackRating | null;
+  stars: number | null;
   comment: string | null;
   created_at: string;
 }
@@ -143,7 +136,6 @@ export interface Database {
       tasks: Table<TaskRow>;
       hours_logs: Table<HoursLogRow>;
       notes: Table<NoteRow>;
-      summaries: Table<SummaryRow>;
       feedback_categories: Table<FeedbackCategoryRow>;
       feedback_entries: Table<FeedbackEntryRow>;
       feedback_ratings: Table<FeedbackRatingRow>;

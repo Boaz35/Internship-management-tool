@@ -9,7 +9,7 @@ import type {
 } from "@/lib/database.types";
 import { formatDate } from "@/lib/progress";
 import { categoryName } from "@/lib/feedback";
-import { RatingChip } from "@/components/VerbalRating";
+import { StarDisplay } from "@/components/StarRating";
 import { deleteFeedbackEntry } from "@/app/actions/feedback";
 
 export interface FeedbackEntryView extends FeedbackEntryRow {
@@ -21,13 +21,11 @@ export function FeedbackHistory({
   internId,
   entries,
   categoriesById,
-  taskNameById,
   canEdit,
 }: {
   internId: string;
   entries: FeedbackEntryView[];
   categoriesById: Map<string, FeedbackCategoryRow>;
-  taskNameById: Map<string, string>;
   canEdit: boolean;
 }) {
   const t = useTranslations("feedback");
@@ -49,9 +47,7 @@ export function FeedbackHistory({
           internId={internId}
           entry={e}
           categoriesById={categoriesById}
-          sourceLabel={
-            e.task_id ? taskNameById.get(e.task_id) ?? t("overallSource") : t("overallSource")
-          }
+          sourceLabel={t("overallSource")}
           locale={locale}
           canEdit={canEdit}
         />
@@ -127,7 +123,7 @@ function HistoryItem({
                   <span style={{ fontSize: 14, fontWeight: 500 }}>
                     {cat ? categoryName(cat, locale) : "—"}
                   </span>
-                  {r.rating && <RatingChip rating={r.rating} />}
+                  {r.stars != null && <StarDisplay value={r.stars} />}
                 </div>
                 {r.comment && (
                   <p

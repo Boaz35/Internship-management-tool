@@ -2,33 +2,26 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import type {
-  FeedbackCategoryRow,
-  FeedbackKind,
-  FeedbackRating,
-} from "@/lib/database.types";
+import type { FeedbackCategoryRow } from "@/lib/database.types";
 import { categoryName, categoryTag } from "@/lib/feedback";
 import { createFeedbackEntry } from "@/app/actions/feedback";
 import { CategoryChips } from "@/components/CategoryChips";
 import { AddCategoryForm } from "@/components/AddCategoryForm";
-import { VerbalRating } from "@/components/VerbalRating";
+import { StarRating } from "@/components/StarRating";
 import {
   LiveCategorySummary,
   type DraftRating,
 } from "@/components/LiveCategorySummary";
 
-// Shared composer for both task-specific and overall feedback.
+// Composer for overall feedback (feedback v3: overall is the only kind).
+// Each addressed category takes an optional 1–5 star rating and a comment.
 export function FeedbackComposer({
   internId,
-  taskId = null,
-  kind,
   categories: initialCategories,
   onSaved,
   showLiveSummary = false,
 }: {
   internId: string;
-  taskId?: string | null;
-  kind: FeedbackKind;
   categories: FeedbackCategoryRow[];
   onSaved?: () => void;
   showLiveSummary?: boolean;
@@ -60,20 +53,20 @@ export function FeedbackComposer({
       else {
         next.add(id);
         setDrafts((d) =>
-          d[id] ? d : { ...d, [id]: { rating: null, comment: "" } }
+          d[id] ? d : { ...d, [id]: { stars: null, comment: "" } }
         );
       }
       return next;
     });
   }
 
-  function setRating(id: string, rating: FeedbackRating | null) {
-    setDrafts((d) => ({ ...d, [id]: { ...(d[id] ?? { comment: "" }), rating } }));
+  function setStars(id: string, stars: number | null) {
+    setDrafts((d) => ({ ...d, [id]: { ...(d[id] ?? { comment: "" }), stars } }));
   }
   function setComment(id: string, comment: string) {
     setDrafts((d) => ({
       ...d,
-      [id]: { ...(d[id] ?? { rating: null }), comment },
+      [id]: { ...(d[id] ?? { stars: null }), comment },
     }));
   }
 
@@ -94,7 +87,7 @@ export function FeedbackComposer({
     setError(null);
     const ratings = Array.from(selected).map((categoryId) => ({
       categoryId,
-      rating: drafts[categoryId]?.rating ?? null,
+      stars: drafts[categoryId]?.stars ?? null,
       comment: drafts[categoryId]?.comment ?? null,
     }));
     if (ratings.length === 0) {
@@ -105,8 +98,6 @@ export function FeedbackComposer({
       try {
         await createFeedbackEntry({
           internId,
-          taskId,
-          kind,
           context: context || null,
           ratings,
         });
@@ -154,7 +145,7 @@ export function FeedbackComposer({
             .filter((c) => selected.has(c.id))
             .map((c) => {
               const tag = categoryTag(c, locale);
-              const d = drafts[c.id] ?? { rating: null, comment: "" };
+              const d = drafts[c.id] ?? { stars: null, comment: "" };
               return (
                 <div
                   key={c.id}
@@ -177,9 +168,9 @@ export function FeedbackComposer({
                     )}
                   </div>
                   <div style={{ marginTop: 8 }}>
-                    <VerbalRating
-                      value={d.rating}
-                      onChange={(r) => setRating(c.id, r)}
+                    <StarRating
+                      value={d.stars}
+                      onChange={(s) => setStars(c.id, s)}
                     />
                   </div>
                   <textarea

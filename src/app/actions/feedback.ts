@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
-import type { FeedbackKind, FeedbackRating } from "@/lib/database.types";
 
 // Any mentor (designer) or team leader may author feedback on any intern.
 async function assertCanMentor(internId: string) {
@@ -22,20 +21,18 @@ async function assertCanMentor(internId: string) {
 function revalidateInternRoutes(internId: string) {
   revalidatePath(`/designer/intern/${internId}`);
   revalidatePath(`/leader/intern/${internId}`);
-  revalidatePath(`/summary/${internId}`);
 }
 
 export interface RatingInput {
   categoryId: string;
-  rating: FeedbackRating | null;
+  stars: number | null;
   comment: string | null;
 }
 
-// Create one feedback entry + one rating row per addressed category.
+// Create one overall feedback entry + one rating row per addressed category.
+// Feedback v3: there is only one kind of feedback — overall, per intern.
 export async function createFeedbackEntry(input: {
   internId: string;
-  taskId: string | null;
-  kind: FeedbackKind;
   context: string | null;
   ratings: RatingInput[];
 }) {
@@ -43,7 +40,7 @@ export async function createFeedbackEntry(input: {
   const supabase = createClient();
 
   const cleanRatings = input.ratings.filter(
-    (r) => r.categoryId && (r.rating || (r.comment && r.comment.trim()))
+    (r) => r.categoryId && (r.stars != null || (r.comment && r.comment.trim()))
   );
   if (cleanRatings.length === 0) {
     throw new Error("Add a rating or comment to at least one category.");
@@ -53,8 +50,8 @@ export async function createFeedbackEntry(input: {
     .from("feedback_entries")
     .insert({
       intern_id: input.internId,
-      task_id: input.taskId,
-      kind: input.kind,
+      task_id: null,
+      kind: "overall",
       author_id: user.id,
       author_name: user.full_name ?? user.email,
       context: input.context?.trim() || null,
@@ -66,7 +63,7 @@ export async function createFeedbackEntry(input: {
   const rows = cleanRatings.map((r) => ({
     entry_id: entry.id,
     category_id: r.categoryId,
-    rating: r.rating,
+    stars: r.stars,
     comment: r.comment?.trim() || null,
   }));
   const { error: ratingErr } = await supabase.from("feedback_ratings").insert(rows);
@@ -136,13 +133,13 @@ export async function updateFeedbackEntry(input: {
 
   await supabase.from("feedback_ratings").delete().eq("entry_id", input.entryId);
   const cleanRatings = input.ratings.filter(
-    (r) => r.categoryId && (r.rating || (r.comment && r.comment.trim()))
+    (r) => r.categoryId && (r.stars != null || (r.comment && r.comment.trim()))
   );
   if (cleanRatings.length > 0) {
     const rows = cleanRatings.map((r) => ({
       entry_id: input.entryId,
       category_id: r.categoryId,
-      rating: r.rating,
+      stars: r.stars,
       comment: r.comment?.trim() || null,
     }));
     const { error } = await supabase.from("feedback_ratings").insert(rows);

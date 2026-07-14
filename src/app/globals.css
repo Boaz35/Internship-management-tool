@@ -36,6 +36,11 @@
   --rating-good-bg: rgba(199, 154, 46, 0.14);
   --rating-fair: #5c7a6b; /* muted neutral/green */
   --rating-fair-bg: rgba(92, 122, 107, 0.14);
+
+  /* Star rating (feedback v3). Single gold accent for filled stars; empty
+     stars use the neutral separator fill. */
+  --star: var(--rating-good);
+  --star-empty: var(--separator);
 }
 
 html,
