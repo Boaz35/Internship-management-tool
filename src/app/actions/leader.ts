@@ -151,16 +151,39 @@ export async function addTemplateTask(milestoneId: string, name: string) {
   revalidateTemplate();
 }
 
+// Rename a template task AND propagate the new name to every current intern's
+// matching copy (template-sourced task in the same phase with the old name), so
+// the change shows up across the whole cohort — not just future interns.
 export async function renameTemplateTask(id: string, name: string) {
   await requireAnyRole(TEMPLATE_EDITORS);
+  const newName = name.trim();
+  if (!newName) return;
   const supabase = createClient();
+
+  // Grab the old name first so we can find the intern copies to update.
+  const { data: tpl } = await supabase
+    .from("task_templates")
+    .select("milestone_id, name")
+    .eq("id", id)
+    .single();
+
   const { error } = await supabase
     .from("task_templates")
-    .update({ name: name.trim() })
+    .update({ name: newName })
     .eq("id", id);
   if (error) throw new Error(error.message);
-  // No revalidate — the input already holds the edited value; renaming a
-  // template task does not change existing interns' tasks.
+
+  if (tpl && tpl.name !== newName) {
+    const { error: taskErr } = await supabase
+      .from("tasks")
+      .update({ name: newName })
+      .eq("milestone_id", tpl.milestone_id)
+      .eq("name", tpl.name)
+      .eq("source", "template");
+    if (taskErr) throw new Error(taskErr.message);
+  }
+
+  revalidateTemplate();
 }
 
 // Removes only the template row — current interns keep the task they already have.
