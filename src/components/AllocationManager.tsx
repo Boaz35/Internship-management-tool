@@ -99,7 +99,7 @@ function Section({
 function RoleRow({ user, first }: { user: UserRow; first: boolean }) {
   const t = useTranslations("allocation");
   const [role, setRole] = useState<UserRole>(user.role);
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   function change(next: UserRole) {
     setRole(next);
@@ -133,7 +133,6 @@ function RoleRow({ user, first }: { user: UserRow; first: boolean }) {
       </div>
       <select
         value={role}
-        disabled={pending}
         onChange={(e) => change(e.target.value as UserRole)}
         className="ios-input"
       >
@@ -254,7 +253,7 @@ function AllocationRow({
   const [designerId, setDesignerId] = useState(intern.allocated_designer_id ?? "");
   const [startDate, setStartDate] = useState(intern.start_date);
   const [endDate, setEndDate] = useState(intern.end_date ?? "");
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   function changeDesigner(next: string) {
     setDesignerId(next);
@@ -315,7 +314,6 @@ function AllocationRow({
           <span className="ios-field-label">{t("mentor")}</span>
           <select
             value={designerId}
-            disabled={pending}
             onChange={(e) => changeDesigner(e.target.value)}
             className="ios-input"
           >

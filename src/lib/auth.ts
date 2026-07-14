@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { UserRole, UserRow } from "@/lib/database.types";
@@ -5,7 +6,9 @@ import type { UserRole, UserRow } from "@/lib/database.types";
 // Returns the signed-in user's profile row, or null if not signed in / no row.
 // Defensive: never throws — logs and returns null so a misconfigured backend
 // degrades to the login screen instead of a 500.
-export async function getCurrentUser(): Promise<UserRow | null> {
+// Wrapped in React cache() so repeated calls within one request/render (e.g. a
+// role guard plus the page body) share a single auth + users lookup.
+export const getCurrentUser = cache(async (): Promise<UserRow | null> => {
   try {
     const supabase = createClient();
     const {
@@ -40,7 +43,7 @@ export async function getCurrentUser(): Promise<UserRow | null> {
     console.error("[auth] getCurrentUser threw:", err);
     return null;
   }
-}
+});
 
 // Requires a signed-in user; redirects to /login otherwise.
 export async function requireUser(): Promise<UserRow> {

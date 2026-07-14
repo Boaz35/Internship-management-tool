@@ -18,8 +18,7 @@ export async function setUserRole(userId: string, role: UserRole) {
     .update({ role })
     .eq("id", userId);
   if (error) throw new Error(error.message);
-  revalidatePath("/leader");
-  revalidatePath("/leader/allocation");
+  // No revalidate — the UI updates optimistically; next navigation refetches.
 }
 
 // Create an intern record for a user and instantiate their task list from the
@@ -86,9 +85,7 @@ export async function allocateIntern(internId: string, designerId: string | null
     .update({ allocated_designer_id: designerId })
     .eq("id", internId);
   if (error) throw new Error(error.message);
-  revalidatePath("/leader/allocation");
-  revalidatePath("/leader");
-  revalidatePath("/designer");
+  // No revalidate — the select updates optimistically; next navigation refetches.
 }
 
 // Copy every current task_template row into this intern's tasks.
@@ -162,7 +159,8 @@ export async function renameTemplateTask(id: string, name: string) {
     .update({ name: name.trim() })
     .eq("id", id);
   if (error) throw new Error(error.message);
-  revalidateTemplate();
+  // No revalidate — the input already holds the edited value; renaming a
+  // template task does not change existing interns' tasks.
 }
 
 // Removes only the template row — current interns keep the task they already have.
@@ -175,17 +173,21 @@ export async function deleteTemplateTask(id: string) {
 }
 
 // Reorder tasks within a phase: reassign sequence = position for the given
-// ordered list of template-task ids.
+// ordered list of template-task ids. No revalidate — the client updates
+// optimistically, so we avoid a full page re-render on every move.
 export async function reorderTemplateTasks(orderedIds: string[]) {
   await requireAnyRole(TEMPLATE_EDITORS);
   if (orderedIds.length === 0) return;
   const supabase = createClient();
-  await Promise.all(
+  // Issued concurrently — resolves in ~one round trip. Partial-column upsert
+  // is avoided because it would trip the NOT NULL columns on insert.
+  const results = await Promise.all(
     orderedIds.map((id, index) =>
       supabase.from("task_templates").update({ sequence: index + 1 }).eq("id", id)
     )
   );
-  revalidateTemplate();
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw new Error(failed.error.message);
 }
 
 // --- Template task links (named URLs / resources) ---------------------------

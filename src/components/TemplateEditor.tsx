@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import type {
   MilestoneRow,
@@ -74,6 +74,15 @@ function MilestoneBlock({
   const [newTask, setNewTask] = useState("");
   const [pending, startTransition] = useTransition();
 
+  // Optimistic local order so reordering feels instant; re-syncs whenever the
+  // server sends a different set/order of tasks.
+  const [order, setOrder] = useState<TaskTemplateRow[]>(tasks);
+  const serverKey = tasks.map((t) => `${t.id}:${t.sequence}`).join("|");
+  useEffect(() => {
+    setOrder(tasks);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverKey]);
+
   const num = String(index + 1).padStart(2, "0");
 
   function saveMilestone() {
@@ -113,14 +122,16 @@ function MilestoneBlock({
 
   function move(taskIndex: number, dir: -1 | 1) {
     const target = taskIndex + dir;
-    if (target < 0 || target >= tasks.length) return;
-    const ordered = tasks.map((t) => t.id);
-    [ordered[taskIndex], ordered[target]] = [ordered[target], ordered[taskIndex]];
+    if (target < 0 || target >= order.length) return;
+    const next = [...order];
+    [next[taskIndex], next[target]] = [next[target], next[taskIndex]];
+    const previous = order;
+    setOrder(next); // optimistic — UI updates immediately
     startTransition(async () => {
       try {
-        await reorderTemplateTasks(ordered);
+        await reorderTemplateTasks(next.map((t) => t.id));
       } catch {
-        /* ignore */
+        setOrder(previous); // revert on failure
       }
     });
   }
@@ -204,18 +215,18 @@ function MilestoneBlock({
       />
 
       <div className="mt-3">
-        {tasks.map((task, i) => (
+        {order.map((task, i) => (
           <TemplateTaskRow
             key={task.id}
             task={task}
             links={linksByTask[task.id] ?? []}
             isFirst={i === 0}
-            isLast={i === tasks.length - 1}
+            isLast={i === order.length - 1}
             onMoveUp={() => move(i, -1)}
             onMoveDown={() => move(i, 1)}
           />
         ))}
-        {tasks.length === 0 && (
+        {order.length === 0 && (
           <div
             style={{
               minHeight: 40,
