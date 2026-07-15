@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { UserRole, UserRow } from "@/lib/database.types";
@@ -11,20 +12,36 @@ import type { UserRole, UserRow } from "@/lib/database.types";
 export const getCurrentUser = cache(async (): Promise<UserRow | null> => {
   try {
     const supabase = createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError) {
-      console.error("[auth] getUser failed:", authError.message);
-      return null;
+
+    // Fast path: the middleware already authenticated the session against the
+    // auth server and forwarded the user id. Trusting it lets us skip a second
+    // network round-trip to the auth server on every navigation.
+    let userId: string | null = null;
+    try {
+      userId = headers().get("x-user-id");
+    } catch {
+      // headers() is unavailable outside a request scope — fall through.
     }
-    if (!user) return null;
+
+    // Fallback (e.g. header missing): verify the session directly. getClaims()
+    // validates the JWT locally when asymmetric signing keys are enabled,
+    // otherwise it falls back to an auth-server check.
+    if (!userId) {
+      const { data: claimsData, error: claimsError } =
+        await supabase.auth.getClaims();
+      if (claimsError) {
+        console.error("[auth] getClaims failed:", claimsError.message);
+        return null;
+      }
+      userId = (claimsData?.claims?.sub as string | undefined) ?? null;
+    }
+
+    if (!userId) return null;
 
     const { data, error } = await supabase
       .from("users")
       .select("*")
-      .eq("id", user.id)
+      .eq("id", userId)
       .single();
 
     if (error) {
