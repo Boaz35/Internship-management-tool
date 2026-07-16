@@ -8,19 +8,28 @@ import { StatusPill } from "@/components/ui";
 
 type TaskLink = { name: string; url: string };
 
-function taskKey(milestoneId: string, name: string) {
-  return `${milestoneId} ${name.trim().toLowerCase()}`;
+// Combine a task's template-task links (matched by tasks.template_id) with the
+// per-task links attached directly to it.
+function linksForTask(
+  task: TaskRow,
+  linksByTemplateId: Record<string, TaskLink[]>,
+  taskLinksByTaskId: Record<string, TaskLink[]>
+): TaskLink[] {
+  return [
+    ...(task.template_id ? linksByTemplateId[task.template_id] ?? [] : []),
+    ...(taskLinksByTaskId[task.id] ?? []),
+  ];
 }
 
 export function InternTaskList({
   milestones,
   tasks,
-  linksByKey = {},
+  linksByTemplateId = {},
   taskLinksByTaskId = {},
 }: {
   milestones: MilestoneRow[];
   tasks: TaskRow[];
-  linksByKey?: Record<string, TaskLink[]>;
+  linksByTemplateId?: Record<string, TaskLink[]>;
   taskLinksByTaskId?: Record<string, TaskLink[]>;
 }) {
   return (
@@ -30,7 +39,7 @@ export function InternTaskList({
           key={m.id}
           milestone={m}
           tasks={tasks.filter((t) => t.milestone_id === m.id)}
-          linksByKey={linksByKey}
+          linksByTemplateId={linksByTemplateId}
           taskLinksByTaskId={taskLinksByTaskId}
         />
       ))}
@@ -41,12 +50,12 @@ export function InternTaskList({
 function InternMilestoneSection({
   milestone,
   tasks,
-  linksByKey,
+  linksByTemplateId,
   taskLinksByTaskId,
 }: {
   milestone: MilestoneRow;
   tasks: TaskRow[];
-  linksByKey: Record<string, TaskLink[]>;
+  linksByTemplateId: Record<string, TaskLink[]>;
   taskLinksByTaskId: Record<string, TaskLink[]>;
 }) {
   const t = useTranslations("internTasks");
@@ -70,10 +79,7 @@ function InternMilestoneSection({
         <TaskRowItem
           key={task.id}
           task={task}
-          links={[
-            ...(linksByKey[taskKey(task.milestone_id, task.name)] ?? []),
-            ...(taskLinksByTaskId[task.id] ?? []),
-          ]}
+          links={linksForTask(task, linksByTemplateId, taskLinksByTaskId)}
         />
       ))}
 
@@ -116,10 +122,7 @@ function InternMilestoneSection({
               <TaskRowItem
                 key={task.id}
                 task={task}
-                links={[
-                  ...(linksByKey[taskKey(task.milestone_id, task.name)] ?? []),
-                  ...(taskLinksByTaskId[task.id] ?? []),
-                ]}
+                links={linksForTask(task, linksByTemplateId, taskLinksByTaskId)}
               />
             ))}
         </>

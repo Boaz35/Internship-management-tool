@@ -15,8 +15,12 @@ import { StatusPill } from "@/components/ui";
 type TaskLink = { name: string; url: string };
 type TaskLinkItem = { id: string; name: string; url: string };
 
-function taskKey(milestoneId: string, name: string) {
-  return `${milestoneId} ${name.trim().toLowerCase()}`;
+// Template-task links for a task, matched directly by tasks.template_id.
+function templateLinksForTask(
+  task: TaskRow,
+  linksByTemplateId: Record<string, TaskLink[]>
+): TaskLink[] {
+  return task.template_id ? linksByTemplateId[task.template_id] ?? [] : [];
 }
 
 export function DesignerTaskList({
@@ -24,14 +28,14 @@ export function DesignerTaskList({
   milestones,
   tasks,
   readOnly = false,
-  linksByKey = {},
+  linksByTemplateId = {},
   taskLinksByTaskId = {},
 }: {
   internId: string;
   milestones: MilestoneRow[];
   tasks: TaskRow[];
   readOnly?: boolean;
-  linksByKey?: Record<string, TaskLink[]>;
+  linksByTemplateId?: Record<string, TaskLink[]>;
   taskLinksByTaskId?: Record<string, TaskLinkItem[]>;
 }) {
   return (
@@ -43,7 +47,7 @@ export function DesignerTaskList({
           tasks={tasks.filter((t) => t.milestone_id === m.id)}
           internId={internId}
           readOnly={readOnly}
-          linksByKey={linksByKey}
+          linksByTemplateId={linksByTemplateId}
           taskLinksByTaskId={taskLinksByTaskId}
         />
       ))}
@@ -56,14 +60,14 @@ function MilestoneSection({
   tasks,
   internId,
   readOnly,
-  linksByKey,
+  linksByTemplateId,
   taskLinksByTaskId,
 }: {
   milestone: MilestoneRow;
   tasks: TaskRow[];
   internId: string;
   readOnly: boolean;
-  linksByKey: Record<string, TaskLink[]>;
+  linksByTemplateId: Record<string, TaskLink[]>;
   taskLinksByTaskId: Record<string, TaskLinkItem[]>;
 }) {
   const t = useTranslations("tasks");
@@ -89,7 +93,7 @@ function MilestoneSection({
           task={task}
           internId={internId}
           readOnly={readOnly}
-          links={linksByKey[taskKey(task.milestone_id, task.name)] ?? []}
+          links={templateLinksForTask(task, linksByTemplateId)}
           taskLinks={taskLinksByTaskId[task.id] ?? []}
         />
       ))}
@@ -136,7 +140,7 @@ function MilestoneSection({
                 task={task}
                 internId={internId}
                 readOnly={readOnly}
-                links={linksByKey[taskKey(task.milestone_id, task.name)] ?? []}
+                links={templateLinksForTask(task, linksByTemplateId)}
                 taskLinks={taskLinksByTaskId[task.id] ?? []}
               />
             ))}
