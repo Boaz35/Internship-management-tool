@@ -4,6 +4,7 @@
 export type UserRole = "intern" | "designer" | "team_leader";
 export type TaskSource = "template" | "custom";
 export type HoursType = "work" | "vacation" | "sick";
+export type AttachmentKind = "file" | "link";
 export type FeedbackRating = "excellent" | "good" | "fair";
 export type FeedbackKind = "task" | "overall";
 export type FeedbackCategorySource = "predefined" | "custom";
@@ -49,6 +50,23 @@ export interface TaskLinkRow {
   name: string;
   url: string;
   sequence: number;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface TaskAttachmentRow {
+  id: string;
+  task_id: string;
+  // Owner tag: the intern this attachment belongs to. Enforced on insert by RLS.
+  intern_id: string;
+  kind: AttachmentKind;
+  name: string;
+  // Set when kind = 'link'.
+  url: string | null;
+  // Set when kind = 'file' — path within the private "task-attachments" bucket.
+  storage_path: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
   created_by: string | null;
   created_at: string;
 }
@@ -150,6 +168,7 @@ export interface Database {
       interns: Table<InternRow>;
       tasks: Table<TaskRow>;
       task_links: Table<TaskLinkRow>;
+      task_attachments: Table<TaskAttachmentRow>;
       hours_logs: Table<HoursLogRow>;
       notes: Table<NoteRow>;
       feedback_categories: Table<FeedbackCategoryRow>;
@@ -162,6 +181,7 @@ export interface Database {
       user_role: UserRole;
       task_source: TaskSource;
       hours_type: HoursType;
+      attachment_kind: AttachmentKind;
       feedback_rating: FeedbackRating;
     };
     CompositeTypes: Record<string, never>;

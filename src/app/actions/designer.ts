@@ -114,5 +114,32 @@ export async function deleteTaskLink(id: string, internId: string) {
   revalidateTaskLinkRoutes(internId);
 }
 
+// --- Intern-uploaded attachments (files + links) -----------------------------
+// Mentors and team leaders can view every intern's attachments and remove them
+// (e.g. clean-up). Uploading is intern-only — see src/app/actions/intern.ts.
+const ATTACHMENT_BUCKET = "task-attachments";
+
+export async function deleteInternAttachment(id: string, internId: string) {
+  await assertCanMentor(internId);
+  const supabase = createClient();
+
+  const { data: row } = await supabase
+    .from("task_attachments")
+    .select("kind, storage_path")
+    .eq("id", id)
+    .eq("intern_id", internId)
+    .single();
+
+  const { error } = await supabase.from("task_attachments").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  const storagePath = (row as any)?.storage_path as string | null | undefined;
+  if ((row as any)?.kind === "file" && storagePath) {
+    await supabase.storage.from(ATTACHMENT_BUCKET).remove([storagePath]);
+  }
+
+  revalidateTaskLinkRoutes(internId);
+}
+
 // NOTE: the free-form private notes feature was replaced by structured mentor
 // feedback in v2. See src/app/actions/feedback.ts.

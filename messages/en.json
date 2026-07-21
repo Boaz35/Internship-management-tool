@@ -78,7 +78,9 @@
     "addLink": "+ Add link",
     "linkName": "Label",
     "linkUrl": "https://…",
-    "removeLink": "Remove link"
+    "removeLink": "Remove link",
+    "internUploads": "Intern uploads",
+    "removeAttachment": "Remove"
   },
   "feedback": {
     "title": "Feedback",
@@ -152,7 +154,13 @@
     "approved": "Approved",
     "awaitingApproval": "Awaiting approval",
     "completed": "Completed",
-    "markDone": "Mark done"
+    "markDone": "Mark done",
+    "addFile": "+ Upload file",
+    "addLink": "+ Add link",
+    "uploading": "Uploading…",
+    "linkName": "Label",
+    "linkUrl": "https://…",
+    "removeAttachment": "Remove"
   },
   "hoursOverview": {
     "title": "Internship progress",

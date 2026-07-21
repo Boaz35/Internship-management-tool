@@ -12,10 +12,18 @@ import type {
   MilestoneRow,
   TaskRow,
   TaskLinkRow,
+  TaskAttachmentRow,
   TaskTemplateLinkRow,
 } from "@/lib/database.types";
 
 export type TaskLink = { name: string; url: string };
+export type AttachmentItem = {
+  id: string;
+  kind: "file" | "link";
+  name: string;
+  href: string;
+  mime: string | null;
+};
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +100,44 @@ export default async function InternDashboard() {
     }
   }
 
+  // Intern-owned attachments (files + links). Files are in a private bucket, so
+  // we mint short-lived signed URLs for the ones on screen.
+  const attachmentsByTaskId: Record<string, AttachmentItem[]> = {};
+  {
+    const { data: rows } = await supabase
+      .from("task_attachments")
+      .select("*")
+      .eq("intern_id", intern.id)
+      .order("created_at");
+    const atts = (rows as TaskAttachmentRow[]) ?? [];
+
+    const filePaths = atts
+      .filter((a) => a.kind === "file" && a.storage_path)
+      .map((a) => a.storage_path as string);
+    const signed: Record<string, string> = {};
+    if (filePaths.length > 0) {
+      const { data: urls } = await supabase.storage
+        .from("task-attachments")
+        .createSignedUrls(filePaths, 60 * 60);
+      for (const u of urls ?? []) {
+        if (u.path && u.signedUrl) signed[u.path] = u.signedUrl;
+      }
+    }
+
+    for (const a of atts) {
+      const href =
+        a.kind === "file" ? signed[a.storage_path ?? ""] ?? "" : a.url ?? "";
+      if (!href) continue;
+      (attachmentsByTaskId[a.task_id] ??= []).push({
+        id: a.id,
+        kind: a.kind,
+        name: a.name,
+        href,
+        mime: a.mime_type,
+      });
+    }
+  }
+
   const firstName = user.full_name ? user.full_name.split(" ")[0] : null;
 
   return (
@@ -117,6 +163,7 @@ export default async function InternDashboard() {
               tasks={taskRows}
               linksByTemplateId={linksByTemplateId}
               taskLinksByTaskId={taskLinksByTaskId}
+              attachmentsByTaskId={attachmentsByTaskId}
             />
           </div>
           <div>

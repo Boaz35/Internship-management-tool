@@ -78,7 +78,9 @@
     "addLink": "+ הוספת קישור",
     "linkName": "תווית",
     "linkUrl": "https://…",
-    "removeLink": "הסרת קישור"
+    "removeLink": "הסרת קישור",
+    "internUploads": "העלאות המתמחה",
+    "removeAttachment": "הסרה"
   },
   "feedback": {
     "title": "פידבק",
@@ -152,7 +154,13 @@
     "approved": "אושר",
     "awaitingApproval": "ממתין לאישור",
     "completed": "הושלם",
-    "markDone": "סמן כבוצע"
+    "markDone": "סמן כבוצע",
+    "addFile": "+ העלאת קובץ",
+    "addLink": "+ הוספת קישור",
+    "uploading": "מעלה…",
+    "linkName": "תווית",
+    "linkUrl": "https://…",
+    "removeAttachment": "הסרה"
   },
   "hoursOverview": {
     "title": "התקדמות ההתמחות",
