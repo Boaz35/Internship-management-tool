@@ -66,8 +66,27 @@ export function NotificationCenter() {
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [people, setPeople] = useState<UserRow[]>([]);
   const [pushEnabled, setPushEnabled] = useState(true);
+  const [permission, setPermission] = useState<
+    NotificationPermission | "unsupported"
+  >("unsupported");
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Read the current browser permission once mounted (Notification is undefined
+  // during SSR and in insecure contexts).
+  useEffect(() => {
+    if (typeof Notification !== "undefined") setPermission(Notification.permission);
+  }, []);
+
+  // Ask for permission the first time it's relevant — triggered from a user
+  // gesture (opening the panel / toggling), which browsers require.
+  const ensurePermission = useCallback(async () => {
+    if (!pushEnabled || typeof Notification === "undefined") return;
+    if (Notification.permission === "default") {
+      const result = await Notification.requestPermission();
+      setPermission(result);
+    }
+  }, [pushEnabled]);
 
   const unread = items.filter((n) => !n.read).length;
 
@@ -121,27 +140,39 @@ export function NotificationCenter() {
   }, [supabase]);
 
   // Live delivery: prepend new rows and raise an OS notification for each.
+  // Realtime enforces RLS against the subscriber's token, so we hand it the
+  // current access token before subscribing — otherwise it connects anonymously
+  // and the row-level filter hides everything.
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          const row = payload.new as NotificationRow;
-          setItems((prev) => (prev.some((n) => n.id === row.id) ? prev : [row, ...prev]));
-          maybePush(row);
-        }
-      )
-      .subscribe();
+    let active = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!active) return;
+      const token = data.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
+      channel = supabase
+        .channel(`notifications:${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${userId}`,
+          },
+          (payload) => {
+            const row = payload.new as NotificationRow;
+            setItems((prev) => (prev.some((n) => n.id === row.id) ? prev : [row, ...prev]));
+            maybePush(row);
+          }
+        )
+        .subscribe();
+    })();
     return () => {
-      supabase.removeChannel(channel);
+      active = false;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [supabase, userId, maybePush]);
 
@@ -184,10 +215,11 @@ export function NotificationCenter() {
 
   async function togglePush() {
     const next = !pushEnabled;
-    if (next && typeof Notification !== "undefined" && Notification.permission === "default") {
-      await Notification.requestPermission();
-    }
     setPushEnabled(next);
+    if (next && typeof Notification !== "undefined" && Notification.permission === "default") {
+      const result = await Notification.requestPermission();
+      setPermission(result);
+    }
     if (userId) {
       await supabase
         .from("notification_prefs")
@@ -195,8 +227,17 @@ export function NotificationCenter() {
     }
   }
 
-  const permissionDenied =
-    typeof Notification !== "undefined" && Notification.permission === "denied";
+  // Opening the panel is a user gesture — a good moment to request permission
+  // if push is on but the browser hasn't been asked yet.
+  function toggleOpen() {
+    setOpen((v) => {
+      const next = !v;
+      if (next) void ensurePermission();
+      return next;
+    });
+  }
+
+  const permissionDenied = permission === "denied";
 
   return (
     <div ref={wrapRef} style={{ position: "relative" }}>
@@ -204,7 +245,7 @@ export function NotificationCenter() {
         type="button"
         aria-label={t("bell")}
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         className="inline-flex items-center justify-center"
         style={{
           position: "relative",

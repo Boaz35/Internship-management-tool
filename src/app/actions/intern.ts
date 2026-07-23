@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
-import { notify } from "@/lib/notify";
+import { notifyQuiet } from "@/lib/notify";
 import type { HoursType } from "@/lib/database.types";
 
 // Intern marks (or unmarks) a task as completed. Only ever touches
@@ -62,7 +62,7 @@ async function notifyTaskCompleted(task: any, user: { id: string; full_name: str
   }
 
   if (recipientIds.length === 0) return;
-  await notify(
+  await notifyQuiet(
     recipientIds.map((rid) => ({
       userId: rid,
       type: "task_completed" as const,

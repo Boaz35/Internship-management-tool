@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
-import { notify } from "@/lib/notify";
+import { notifyQuiet } from "@/lib/notify";
 
 // Resolve the user_id of the intern behind an intern record, for notifying them.
 async function internUserId(internId: string): Promise<string | null> {
@@ -69,7 +69,7 @@ export async function addCustomTask(input: {
   // Tell the intern a new task appeared on their program.
   const recipientId = await internUserId(input.internId);
   if (recipientId) {
-    await notify({
+    await notifyQuiet({
       userId: recipientId,
       type: "task_added",
       actorId: user.id,
@@ -138,7 +138,7 @@ export async function addTaskLink(input: {
       .select("name")
       .eq("id", input.taskId)
       .single();
-    await notify({
+    await notifyQuiet({
       userId: recipientId,
       type: "link_added",
       actorId: user.id,

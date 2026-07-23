@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole, requireAnyRole } from "@/lib/auth";
-import { notify } from "@/lib/notify";
+import { notifyQuiet } from "@/lib/notify";
 import type { UserRole } from "@/lib/database.types";
 
 // Map a set of intern records to their users' ids, for notifying them.
@@ -164,7 +164,7 @@ export async function addTemplateTask(milestoneId: string, name: string) {
     if (taskErr) throw new Error(taskErr.message);
 
     // Notify every existing intern that a new task joined their program.
-    await notify(
+    await notifyQuiet(
       (interns as { user_id: string }[]).map((i) => ({
         userId: i.user_id,
         type: "task_added" as const,
@@ -293,7 +293,7 @@ export async function addTaskLink(input: {
   );
   const recipientIds = await internUserIds(internIds);
   if (recipientIds.length > 0) {
-    await notify(
+    await notifyQuiet(
       recipientIds.map((rid) => ({
         userId: rid,
         type: "link_added" as const,
