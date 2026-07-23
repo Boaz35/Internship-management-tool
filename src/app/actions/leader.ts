@@ -3,7 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole, requireAnyRole } from "@/lib/auth";
+import { notify } from "@/lib/notify";
 import type { UserRole } from "@/lib/database.types";
+
+// Map a set of intern records to their users' ids, for notifying them.
+async function internUserIds(internIds: string[]): Promise<string[]> {
+  if (internIds.length === 0) return [];
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("interns")
+    .select("user_id")
+    .in("id", internIds);
+  return (data ?? []).map((i: { user_id: string }) => i.user_id);
+}
 
 // Team leaders and mentors can both edit the shared program template.
 const TEMPLATE_EDITORS: UserRole[] = ["team_leader", "designer"];
@@ -120,7 +132,7 @@ function revalidateTemplate() {
 // Add a task to the template AND fan it out to every current intern, so a new
 // task shows up immediately for the whole cohort (not just future interns).
 export async function addTemplateTask(milestoneId: string, name: string) {
-  await requireAnyRole(TEMPLATE_EDITORS);
+  const user = await requireAnyRole(TEMPLATE_EDITORS);
   if (!name.trim()) return;
   const supabase = createClient();
   const { data: existing } = await supabase
@@ -139,7 +151,7 @@ export async function addTemplateTask(milestoneId: string, name: string) {
   if (error || !tpl) throw new Error(error?.message ?? "Could not add task.");
 
   // Propagate to existing interns, linked back to the new template task.
-  const { data: interns } = await supabase.from("interns").select("id");
+  const { data: interns } = await supabase.from("interns").select("id, user_id");
   if (interns && interns.length > 0) {
     const rows = interns.map((i: { id: string }) => ({
       intern_id: i.id,
@@ -150,6 +162,18 @@ export async function addTemplateTask(milestoneId: string, name: string) {
     }));
     const { error: taskErr } = await supabase.from("tasks").insert(rows);
     if (taskErr) throw new Error(taskErr.message);
+
+    // Notify every existing intern that a new task joined their program.
+    await notify(
+      (interns as { user_id: string }[]).map((i) => ({
+        userId: i.user_id,
+        type: "task_added" as const,
+        actorId: user.id,
+        actorName: user.full_name ?? user.email,
+        data: { taskName: name.trim() },
+        href: "/intern",
+      }))
+    );
   }
 
   revalidateTemplate();
@@ -257,6 +281,30 @@ export async function addTaskLink(input: {
     created_by: user.id,
   });
   if (error) throw new Error(error.message);
+
+  // A template link propagates to every intern who holds a task copied from
+  // this template task — notify each of them.
+  const [{ data: tpl }, { data: linkedTasks }] = await Promise.all([
+    supabase.from("task_templates").select("name").eq("id", input.templateId).single(),
+    supabase.from("tasks").select("intern_id").eq("template_id", input.templateId),
+  ]);
+  const internIds = Array.from(
+    new Set((linkedTasks ?? []).map((t: { intern_id: string }) => t.intern_id))
+  );
+  const recipientIds = await internUserIds(internIds);
+  if (recipientIds.length > 0) {
+    await notify(
+      recipientIds.map((rid) => ({
+        userId: rid,
+        type: "link_added" as const,
+        actorId: user.id,
+        actorName: user.full_name ?? user.email,
+        data: { taskName: (tpl as { name: string } | null)?.name, linkName: name },
+        href: "/intern",
+      }))
+    );
+  }
+
   revalidateTemplate();
 }
 

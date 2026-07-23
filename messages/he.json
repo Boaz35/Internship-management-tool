@@ -78,7 +78,9 @@
     "addLink": "+ הוספת קישור",
     "linkName": "תווית",
     "linkUrl": "https://…",
-    "removeLink": "הסרת קישור"
+    "removeLink": "הסרת קישור",
+    "internUploads": "העלאות המתמחה",
+    "removeAttachment": "הסרה"
   },
   "feedback": {
     "title": "פידבק",
@@ -152,7 +154,13 @@
     "approved": "אושר",
     "awaitingApproval": "ממתין לאישור",
     "completed": "הושלם",
-    "markDone": "סמן כבוצע"
+    "markDone": "סמן כבוצע",
+    "addFile": "+ העלאת קובץ",
+    "addLink": "+ הוספת קישור",
+    "uploading": "מעלה…",
+    "linkName": "תווית",
+    "linkUrl": "https://…",
+    "removeAttachment": "הסרה"
   },
   "hoursOverview": {
     "title": "התקדמות ההתמחות",
@@ -231,5 +239,23 @@
     "linkName": "תווית",
     "linkUrl": "https://…",
     "removeLink": "הסרת קישור"
+  },
+  "notifications": {
+    "bell": "התראות",
+    "title": "התראות",
+    "markAllRead": "סמן הכול כנקרא",
+    "empty": "אין התראות חדשות.",
+    "pushLabel": "התראות דפדפן",
+    "pushHint": "הצג חלונית קופצת כשמשהו קורה.",
+    "pushBlocked": "חסום בהגדרות הדפדפן.",
+    "composeTo": "שליחת הודעה אל…",
+    "composePlaceholder": "כתבו הודעה…",
+    "send": "שליחה",
+    "taskAddedTitle": "נוספה משימה חדשה",
+    "linkAddedTitle": "נוסף מקור חדש",
+    "linkAddedBody": "{link} — למשימה \"{task}\"",
+    "taskCompletedTitle": "משימה הושלמה",
+    "taskCompletedBody": "{name} השלים/ה את \"{task}\"",
+    "messageTitle": "הודעה מ־{name}"
   }
 }

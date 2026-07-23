@@ -4,9 +4,15 @@
 export type UserRole = "intern" | "designer" | "team_leader";
 export type TaskSource = "template" | "custom";
 export type HoursType = "work" | "vacation" | "sick";
+export type AttachmentKind = "file" | "link";
 export type FeedbackRating = "excellent" | "good" | "fair";
 export type FeedbackKind = "task" | "overall";
 export type FeedbackCategorySource = "predefined" | "custom";
+export type NotificationType =
+  | "task_added"
+  | "link_added"
+  | "task_completed"
+  | "message";
 
 export interface UserRow {
   id: string;
@@ -49,6 +55,23 @@ export interface TaskLinkRow {
   name: string;
   url: string;
   sequence: number;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface TaskAttachmentRow {
+  id: string;
+  task_id: string;
+  // Owner tag: the intern this attachment belongs to. Enforced on insert by RLS.
+  intern_id: string;
+  kind: AttachmentKind;
+  name: string;
+  // Set when kind = 'link'.
+  url: string | null;
+  // Set when kind = 'file' — path within the private "task-attachments" bucket.
+  storage_path: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
   created_by: string | null;
   created_at: string;
 }
@@ -133,6 +156,34 @@ export interface FeedbackRatingRow {
   created_at: string;
 }
 
+// Payload the client localises when rendering a notification.
+export interface NotificationData {
+  taskName?: string;
+  linkName?: string;
+  internName?: string;
+}
+
+export interface NotificationRow {
+  id: string;
+  // Recipient.
+  user_id: string;
+  type: NotificationType;
+  actor_id: string | null;
+  actor_name: string | null;
+  data: NotificationData;
+  // Free-text body for kind = 'message'.
+  body: string | null;
+  href: string | null;
+  read: boolean;
+  created_at: string;
+}
+
+export interface NotificationPrefRow {
+  user_id: string;
+  push_enabled: boolean;
+  updated_at: string;
+}
+
 type Table<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -150,11 +201,14 @@ export interface Database {
       interns: Table<InternRow>;
       tasks: Table<TaskRow>;
       task_links: Table<TaskLinkRow>;
+      task_attachments: Table<TaskAttachmentRow>;
       hours_logs: Table<HoursLogRow>;
       notes: Table<NoteRow>;
       feedback_categories: Table<FeedbackCategoryRow>;
       feedback_entries: Table<FeedbackEntryRow>;
       feedback_ratings: Table<FeedbackRatingRow>;
+      notifications: Table<NotificationRow>;
+      notification_prefs: Table<NotificationPrefRow>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -162,7 +216,9 @@ export interface Database {
       user_role: UserRole;
       task_source: TaskSource;
       hours_type: HoursType;
+      attachment_kind: AttachmentKind;
       feedback_rating: FeedbackRating;
+      notification_type: NotificationType;
     };
     CompositeTypes: Record<string, never>;
   };

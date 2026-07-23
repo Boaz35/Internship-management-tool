@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { MilestoneRow, TaskRow } from "@/lib/database.types";
 import {
@@ -9,11 +10,19 @@ import {
   deleteTask,
   addTaskLink,
   deleteTaskLink,
+  deleteInternAttachment,
 } from "@/app/actions/designer";
 import { StatusPill } from "@/components/ui";
 
 type TaskLink = { name: string; url: string };
 type TaskLinkItem = { id: string; name: string; url: string };
+export type AttachmentItem = {
+  id: string;
+  kind: "file" | "link";
+  name: string;
+  href: string;
+  mime: string | null;
+};
 
 // Template-task links for a task, matched directly by tasks.template_id.
 function templateLinksForTask(
@@ -30,6 +39,7 @@ export function DesignerTaskList({
   readOnly = false,
   linksByTemplateId = {},
   taskLinksByTaskId = {},
+  attachmentsByTaskId = {},
 }: {
   internId: string;
   milestones: MilestoneRow[];
@@ -37,6 +47,7 @@ export function DesignerTaskList({
   readOnly?: boolean;
   linksByTemplateId?: Record<string, TaskLink[]>;
   taskLinksByTaskId?: Record<string, TaskLinkItem[]>;
+  attachmentsByTaskId?: Record<string, AttachmentItem[]>;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -49,6 +60,7 @@ export function DesignerTaskList({
           readOnly={readOnly}
           linksByTemplateId={linksByTemplateId}
           taskLinksByTaskId={taskLinksByTaskId}
+          attachmentsByTaskId={attachmentsByTaskId}
         />
       ))}
     </div>
@@ -62,6 +74,7 @@ function MilestoneSection({
   readOnly,
   linksByTemplateId,
   taskLinksByTaskId,
+  attachmentsByTaskId,
 }: {
   milestone: MilestoneRow;
   tasks: TaskRow[];
@@ -69,6 +82,7 @@ function MilestoneSection({
   readOnly: boolean;
   linksByTemplateId: Record<string, TaskLink[]>;
   taskLinksByTaskId: Record<string, TaskLinkItem[]>;
+  attachmentsByTaskId: Record<string, AttachmentItem[]>;
 }) {
   const t = useTranslations("tasks");
   const [showApproved, setShowApproved] = useState(false);
@@ -95,6 +109,7 @@ function MilestoneSection({
           readOnly={readOnly}
           links={templateLinksForTask(task, linksByTemplateId)}
           taskLinks={taskLinksByTaskId[task.id] ?? []}
+          attachments={attachmentsByTaskId[task.id] ?? []}
         />
       ))}
 
@@ -142,6 +157,7 @@ function MilestoneSection({
                 readOnly={readOnly}
                 links={templateLinksForTask(task, linksByTemplateId)}
                 taskLinks={taskLinksByTaskId[task.id] ?? []}
+                attachments={attachmentsByTaskId[task.id] ?? []}
               />
             ))}
         </>
@@ -158,12 +174,14 @@ function DesignerTaskRow({
   readOnly,
   links = [],
   taskLinks = [],
+  attachments = [],
 }: {
   task: TaskRow;
   internId: string;
   readOnly: boolean;
   links?: TaskLink[];
   taskLinks?: TaskLinkItem[];
+  attachments?: AttachmentItem[];
 }) {
   const t = useTranslations("tasks");
   const [approved, setApproved] = useState(task.approved_by_designer);
@@ -237,6 +255,12 @@ function DesignerTaskRow({
         taskId={task.id}
         templateLinks={links}
         taskLinks={taskLinks}
+        readOnly={readOnly}
+      />
+
+      <InternUploads
+        internId={internId}
+        attachments={attachments}
         readOnly={readOnly}
       />
     </div>
@@ -534,5 +558,106 @@ function AddCustomTask({
         {tc("cancel")}
       </button>
     </form>
+  );
+}
+
+// Read-only view of the intern's own uploaded files + links. Mentors and team
+// leaders can also remove them; interns manage their own on the intern page.
+function InternUploads({
+  internId,
+  attachments,
+  readOnly,
+}: {
+  internId: string;
+  attachments: AttachmentItem[];
+  readOnly: boolean;
+}) {
+  const t = useTranslations("tasks");
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  if (attachments.length === 0) return null;
+
+  function remove(id: string) {
+    startTransition(async () => {
+      try {
+        await deleteInternAttachment(id, internId);
+        router.refresh();
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+
+  return (
+    <div style={{ marginTop: 2, marginBottom: 6 }}>
+      <div
+        style={{ fontSize: 12, color: "var(--label-tertiary)", marginBottom: 4 }}
+      >
+        {t("internUploads")}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {attachments.map((a) => (
+          <span
+            key={a.id}
+            className="inline-flex items-center gap-1"
+            style={{
+              fontSize: 13,
+              borderRadius: 100,
+              padding: "3px 4px 3px 10px",
+              background: "var(--fill-tertiary)",
+            }}
+          >
+            <a
+              href={a.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              download={a.kind === "file" ? a.name : undefined}
+              title={a.name}
+              className="inline-flex items-center gap-1"
+              style={{ color: "var(--tint)", textDecoration: "none" }}
+            >
+              {a.kind === "file" ? <FileGlyph /> : <LinkGlyph />}
+              {a.name}
+            </a>
+            {!readOnly && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => remove(a.id)}
+                aria-label={t("removeAttachment")}
+                title={t("removeAttachment")}
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: "50%",
+                  color: "var(--label-tertiary)",
+                  cursor: "pointer",
+                  fontSize: 11,
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FileGlyph() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 14 14" style={{ flexShrink: 0 }} aria-hidden>
+      <path
+        d="M3 1.5 h5 l3 3 v8 a0 0 0 0 1 0 0 h-8 a0 0 0 0 1 0 0 z M8 1.5 v3 h3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

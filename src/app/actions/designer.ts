@@ -3,6 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
+import { notify } from "@/lib/notify";
+
+// Resolve the user_id of the intern behind an intern record, for notifying them.
+async function internUserId(internId: string): Promise<string | null> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("interns")
+    .select("user_id")
+    .eq("id", internId)
+    .single();
+  return (data as { user_id: string } | null)?.user_id ?? null;
+}
 
 async function assertCanMentor(internId: string) {
   const user = await requireUser();
@@ -53,6 +65,20 @@ export async function addCustomTask(input: {
     created_by: user.id,
   });
   if (error) throw new Error(error.message);
+
+  // Tell the intern a new task appeared on their program.
+  const recipientId = await internUserId(input.internId);
+  if (recipientId) {
+    await notify({
+      userId: recipientId,
+      type: "task_added",
+      actorId: user.id,
+      actorName: user.full_name ?? user.email,
+      data: { taskName: input.name },
+      href: "/intern",
+    });
+  }
+
   revalidatePath(`/designer/intern/${input.internId}`);
 }
 
@@ -103,6 +129,25 @@ export async function addTaskLink(input: {
     created_by: user.id,
   });
   if (error) throw new Error(error.message);
+
+  // Tell the intern a new resource was attached to one of their tasks.
+  const recipientId = await internUserId(input.internId);
+  if (recipientId) {
+    const { data: task } = await supabase
+      .from("tasks")
+      .select("name")
+      .eq("id", input.taskId)
+      .single();
+    await notify({
+      userId: recipientId,
+      type: "link_added",
+      actorId: user.id,
+      actorName: user.full_name ?? user.email,
+      data: { taskName: (task as { name: string } | null)?.name, linkName: name },
+      href: "/intern",
+    });
+  }
+
   revalidateTaskLinkRoutes(input.internId);
 }
 
@@ -111,6 +156,33 @@ export async function deleteTaskLink(id: string, internId: string) {
   const supabase = createClient();
   const { error } = await supabase.from("task_links").delete().eq("id", id);
   if (error) throw new Error(error.message);
+  revalidateTaskLinkRoutes(internId);
+}
+
+// --- Intern-uploaded attachments (files + links) -----------------------------
+// Mentors and team leaders can view every intern's attachments and remove them
+// (e.g. clean-up). Uploading is intern-only — see src/app/actions/intern.ts.
+const ATTACHMENT_BUCKET = "task-attachments";
+
+export async function deleteInternAttachment(id: string, internId: string) {
+  await assertCanMentor(internId);
+  const supabase = createClient();
+
+  const { data: row } = await supabase
+    .from("task_attachments")
+    .select("kind, storage_path")
+    .eq("id", id)
+    .eq("intern_id", internId)
+    .single();
+
+  const { error } = await supabase.from("task_attachments").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  const storagePath = (row as any)?.storage_path as string | null | undefined;
+  if ((row as any)?.kind === "file" && storagePath) {
+    await supabase.storage.from(ATTACHMENT_BUCKET).remove([storagePath]);
+  }
+
   revalidateTaskLinkRoutes(internId);
 }
 

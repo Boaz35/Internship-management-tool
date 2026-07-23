@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/Sidebar";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { NotificationCenter } from "@/components/NotificationCenter";
 import type { UserRole } from "@/lib/database.types";
 
 // Full-height shell: fixed sidebar + scrollable main content area.
@@ -21,6 +22,7 @@ export function AppShell({
       <main style={{ flex: 1, overflowY: "auto", minWidth: 0 }}>{children}</main>
       {/* Pinned to the top trailing corner: top-right in LTR, top-left in RTL. */}
       <div
+        className="flex items-center gap-[10px]"
         style={{
           position: "fixed",
           top: 16,
@@ -28,6 +30,7 @@ export function AppShell({
           zIndex: 50,
         }}
       >
+        <NotificationCenter />
         <LanguageToggle />
       </div>
     </div>

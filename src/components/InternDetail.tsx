@@ -21,12 +21,20 @@ import type {
   MilestoneRow,
   TaskRow,
   TaskLinkRow,
+  TaskAttachmentRow,
   TaskTemplateLinkRow,
   UserRow,
 } from "@/lib/database.types";
 
 export type TaskLink = { name: string; url: string };
 export type TaskLinkItem = { id: string; name: string; url: string };
+export type AttachmentItem = {
+  id: string;
+  kind: "file" | "link";
+  name: string;
+  href: string;
+  mime: string | null;
+};
 
 // Full per-intern view, used by the designer and the team leader.
 export async function InternDetail({
@@ -154,6 +162,42 @@ export async function InternDetail({
     });
   }
 
+  const attachmentsByTaskId: Record<string, AttachmentItem[]> = {};
+  {
+    const { data: rows } = await supabase
+      .from("task_attachments")
+      .select("*")
+      .eq("intern_id", internId)
+      .order("created_at");
+    const atts = (rows as TaskAttachmentRow[]) ?? [];
+
+    const filePaths = atts
+      .filter((a) => a.kind === "file" && a.storage_path)
+      .map((a) => a.storage_path as string);
+    const signed: Record<string, string> = {};
+    if (filePaths.length > 0) {
+      const { data: urls } = await supabase.storage
+        .from("task-attachments")
+        .createSignedUrls(filePaths, 60 * 60);
+      for (const u of urls ?? []) {
+        if (u.path && u.signedUrl) signed[u.path] = u.signedUrl;
+      }
+    }
+
+    for (const a of atts) {
+      const href =
+        a.kind === "file" ? signed[a.storage_path ?? ""] ?? "" : a.url ?? "";
+      if (!href) continue;
+      (attachmentsByTaskId[a.task_id] ??= []).push({
+        id: a.id,
+        kind: a.kind,
+        name: a.name,
+        href,
+        mime: a.mime_type,
+      });
+    }
+  }
+
   const name = person?.full_name ?? person?.email ?? "Intern";
   const hours = summarizeHours((logs as HoursLogRow[]) ?? [], intern.target_hours);
   const projected = projectEndDate(hours.remaining);
@@ -216,6 +260,7 @@ export async function InternDetail({
               tasks={taskRows}
               linksByTemplateId={linksByTemplateId}
               taskLinksByTaskId={taskLinksByTaskId}
+              attachmentsByTaskId={attachmentsByTaskId}
             />
           }
           feedbackSlot={
