@@ -450,7 +450,11 @@ function Composer({
     setBusy(true);
     setError(null);
     try {
-      await sendMessage({ recipientId, body });
+      const result = await sendMessage({ recipientId, body });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setBody("");
       setRecipientId("");
       onSent();
