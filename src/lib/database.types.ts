@@ -8,6 +8,11 @@ export type AttachmentKind = "file" | "link";
 export type FeedbackRating = "excellent" | "good" | "fair";
 export type FeedbackKind = "task" | "overall";
 export type FeedbackCategorySource = "predefined" | "custom";
+export type NotificationType =
+  | "task_added"
+  | "link_added"
+  | "task_completed"
+  | "message";
 
 export interface UserRow {
   id: string;
@@ -151,6 +156,34 @@ export interface FeedbackRatingRow {
   created_at: string;
 }
 
+// Payload the client localises when rendering a notification.
+export interface NotificationData {
+  taskName?: string;
+  linkName?: string;
+  internName?: string;
+}
+
+export interface NotificationRow {
+  id: string;
+  // Recipient.
+  user_id: string;
+  type: NotificationType;
+  actor_id: string | null;
+  actor_name: string | null;
+  data: NotificationData;
+  // Free-text body for kind = 'message'.
+  body: string | null;
+  href: string | null;
+  read: boolean;
+  created_at: string;
+}
+
+export interface NotificationPrefRow {
+  user_id: string;
+  push_enabled: boolean;
+  updated_at: string;
+}
+
 type Table<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -174,6 +207,8 @@ export interface Database {
       feedback_categories: Table<FeedbackCategoryRow>;
       feedback_entries: Table<FeedbackEntryRow>;
       feedback_ratings: Table<FeedbackRatingRow>;
+      notifications: Table<NotificationRow>;
+      notification_prefs: Table<NotificationPrefRow>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -183,6 +218,7 @@ export interface Database {
       hours_type: HoursType;
       attachment_kind: AttachmentKind;
       feedback_rating: FeedbackRating;
+      notification_type: NotificationType;
     };
     CompositeTypes: Record<string, never>;
   };

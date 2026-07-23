@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
+import { notify } from "@/lib/notify";
 import type { HoursType } from "@/lib/database.types";
 
 // Intern marks (or unmarks) a task as completed. Only ever touches
@@ -11,10 +12,13 @@ export async function setTaskCompleted(taskId: string, completed: boolean) {
   const user = await requireUser();
   const supabase = createClient();
 
-  // Guard: only the intern who owns this task may set completion.
+  // Guard: only the intern who owns this task may set completion. We also pull
+  // the task name + the intern's mentor so we can notify on completion.
   const { data: task } = await supabase
     .from("tasks")
-    .select("id, intern_id, interns:intern_id(user_id)")
+    .select(
+      "id, name, intern_id, interns:intern_id(user_id, allocated_designer_id, users:user_id(full_name))"
+    )
     .eq("id", taskId)
     .single();
 
@@ -29,7 +33,45 @@ export async function setTaskCompleted(taskId: string, completed: boolean) {
     .eq("id", taskId);
   if (error) throw new Error(error.message);
 
+  // Notify the mentor only when a task is completed (not on un-complete).
+  if (completed) {
+    await notifyTaskCompleted(task, user);
+  }
+
   revalidatePath("/intern");
+}
+
+// Tell the relevant mentor an intern completed a task: the allocated designer
+// if there is one, otherwise every team leader (so nothing goes unseen when an
+// intern hasn't been allocated yet).
+async function notifyTaskCompleted(task: any, user: { id: string; full_name: string | null; email: string }) {
+  const internId = task.intern_id as string;
+  const designerId = task.interns?.allocated_designer_id as string | null;
+  const internName = task.interns?.users?.full_name ?? user.full_name ?? user.email;
+
+  let recipientIds: string[] = [];
+  if (designerId) {
+    recipientIds = [designerId];
+  } else {
+    const admin = createAdminClient();
+    const { data: leaders } = await admin
+      .from("users")
+      .select("id")
+      .eq("role", "team_leader");
+    recipientIds = (leaders ?? []).map((l: { id: string }) => l.id);
+  }
+
+  if (recipientIds.length === 0) return;
+  await notify(
+    recipientIds.map((rid) => ({
+      userId: rid,
+      type: "task_completed" as const,
+      actorId: user.id,
+      actorName: user.full_name ?? user.email,
+      data: { internName, taskName: task.name as string },
+      href: `/designer/intern/${internId}`,
+    }))
+  );
 }
 
 async function ownInternId(userId: string) {

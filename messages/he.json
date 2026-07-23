@@ -239,5 +239,23 @@
     "linkName": "תווית",
     "linkUrl": "https://…",
     "removeLink": "הסרת קישור"
+  },
+  "notifications": {
+    "bell": "התראות",
+    "title": "התראות",
+    "markAllRead": "סמן הכול כנקרא",
+    "empty": "אין התראות חדשות.",
+    "pushLabel": "התראות דפדפן",
+    "pushHint": "הצג חלונית קופצת כשמשהו קורה.",
+    "pushBlocked": "חסום בהגדרות הדפדפן.",
+    "composeTo": "שליחת הודעה אל…",
+    "composePlaceholder": "כתבו הודעה…",
+    "send": "שליחה",
+    "taskAddedTitle": "נוספה משימה חדשה",
+    "linkAddedTitle": "נוסף מקור חדש",
+    "linkAddedBody": "{link} — למשימה \"{task}\"",
+    "taskCompletedTitle": "משימה הושלמה",
+    "taskCompletedBody": "{name} השלים/ה את \"{task}\"",
+    "messageTitle": "הודעה מ־{name}"
   }
 }

@@ -239,5 +239,23 @@
     "linkName": "Label",
     "linkUrl": "https://…",
     "removeLink": "Remove link"
+  },
+  "notifications": {
+    "bell": "Notifications",
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "You're all caught up.",
+    "pushLabel": "Browser notifications",
+    "pushHint": "Show a popup when something happens.",
+    "pushBlocked": "Blocked in your browser settings.",
+    "composeTo": "Send a message to…",
+    "composePlaceholder": "Write a message…",
+    "send": "Send",
+    "taskAddedTitle": "New task added",
+    "linkAddedTitle": "New resource added",
+    "linkAddedBody": "{link} — on \"{task}\"",
+    "taskCompletedTitle": "Task completed",
+    "taskCompletedBody": "{name} completed \"{task}\"",
+    "messageTitle": "Message from {name}"
   }
 }

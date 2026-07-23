@@ -28,7 +28,10 @@ Run the SQL files in order in the Supabase SQL editor (or via the Supabase CLI):
 
 1. `supabase/migrations/0001_schema.sql` — tables, enums, signup trigger
 2. `supabase/migrations/0002_rls.sql` — Row Level Security policies
-3. `supabase/seed.sql` — milestones + default task templates
+3. The remaining numbered migrations in `supabase/migrations/` in order (feedback, task links & attachments, and `0015_notifications.sql` for the notification center)
+4. `supabase/seed.sql` — milestones + default task templates
+
+`0015_notifications.sql` also adds the `notifications` table to the `supabase_realtime` publication so the in-app notification center updates live — no extra configuration or environment variables are needed.
 
 ### 3. Configure Google auth
 

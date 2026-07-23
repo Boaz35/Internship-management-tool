@@ -3,6 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
+import { notify } from "@/lib/notify";
+
+// Resolve the user_id of the intern behind an intern record, for notifying them.
+async function internUserId(internId: string): Promise<string | null> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("interns")
+    .select("user_id")
+    .eq("id", internId)
+    .single();
+  return (data as { user_id: string } | null)?.user_id ?? null;
+}
 
 async function assertCanMentor(internId: string) {
   const user = await requireUser();
@@ -53,6 +65,20 @@ export async function addCustomTask(input: {
     created_by: user.id,
   });
   if (error) throw new Error(error.message);
+
+  // Tell the intern a new task appeared on their program.
+  const recipientId = await internUserId(input.internId);
+  if (recipientId) {
+    await notify({
+      userId: recipientId,
+      type: "task_added",
+      actorId: user.id,
+      actorName: user.full_name ?? user.email,
+      data: { taskName: input.name },
+      href: "/intern",
+    });
+  }
+
   revalidatePath(`/designer/intern/${input.internId}`);
 }
 
@@ -103,6 +129,25 @@ export async function addTaskLink(input: {
     created_by: user.id,
   });
   if (error) throw new Error(error.message);
+
+  // Tell the intern a new resource was attached to one of their tasks.
+  const recipientId = await internUserId(input.internId);
+  if (recipientId) {
+    const { data: task } = await supabase
+      .from("tasks")
+      .select("name")
+      .eq("id", input.taskId)
+      .single();
+    await notify({
+      userId: recipientId,
+      type: "link_added",
+      actorId: user.id,
+      actorName: user.full_name ?? user.email,
+      data: { taskName: (task as { name: string } | null)?.name, linkName: name },
+      href: "/intern",
+    });
+  }
+
   revalidateTaskLinkRoutes(input.internId);
 }
 
